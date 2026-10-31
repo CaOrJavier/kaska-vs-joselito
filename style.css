@@ -366,3 +366,155 @@ h2 {
   .overFace { width: 70px; height: 70px; }
   .items li { padding: 4px 10px; }
 }
+
+/* ---------- menú: barra superior y botones pequeños ---------- */
+#menu .inner { padding-top: 34px; }
+.topbar {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 2;
+}
+.coinPill {
+  border: none;
+  background: rgba(0, 0, 0, .35);
+  color: #fff;
+  font-family: var(--fb);
+  font-weight: 700;
+  font-size: 17px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.coinPill b { font-family: var(--ft); font-weight: 400; color: var(--yellow); font-size: 19px; letter-spacing: .5px; }
+.iconBtn { border: none; background: rgba(0, 0, 0, .35); border-radius: 999px; width: 40px; height: 36px; font-size: 18px; cursor: pointer; }
+.grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 360px; }
+.btn.sm { font-size: 18px; padding: 11px 10px 8px; border-radius: 14px; }
+.card { width: min(34vw, 145px); }
+
+/* ---------- tienda ---------- */
+.coinsBig { font-size: 22px; font-weight: 700; margin-top: -6px; }
+.coinsBig b { font-family: var(--ft); font-weight: 400; font-size: 30px; color: var(--yellow); letter-spacing: 1px; }
+.shopList { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 8px; }
+.shopList li { display: flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, .07); border-radius: 14px; padding: 8px 10px; text-align: left; }
+.shopList .ic { font-size: 28px; width: 38px; text-align: center; flex: none; }
+.shopList .info { flex: 1; min-width: 0; }
+.shopList .info b { display: block; font-size: 16px; }
+.shopList .info span { display: block; font-size: 13px; color: #d8c6ee; }
+.shopList .info .next { color: #9be15d; font-weight: 600; }
+.pips { display: flex; gap: 4px; margin-top: 4px; }
+.pips i { width: 14px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .2); }
+.pips i.on { background: var(--yellow); }
+.buy {
+  flex: none;
+  min-width: 82px;
+  border: none;
+  border-radius: 12px;
+  padding: 9px 10px 7px;
+  font-family: var(--ft);
+  font-size: 16px;
+  letter-spacing: .5px;
+  color: #fff;
+  background: var(--green);
+  box-shadow: 0 4px 0 var(--green-d);
+  cursor: pointer;
+}
+.buy:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--green-d); }
+.buy:disabled { background: #4a3a5c; box-shadow: 0 4px 0 #2a1f36; color: #a99bbb; cursor: default; transform: none; }
+.buy.max { background: var(--purple); box-shadow: 0 4px 0 var(--purple-d); }
+.buy.equipped { background: var(--orange); box-shadow: 0 4px 0 var(--orange-d); }
+.costumes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; width: 100%; max-width: 380px; }
+.costume { background: rgba(255, 255, 255, .07); border-radius: 14px; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.costume.on { outline: 3px solid var(--orange); background: rgba(255, 123, 28, .15); }
+.costume canvas { width: 96px; height: 96px; }
+.costume b { font-size: 15px; }
+
+/* ---------- misiones ---------- */
+.missionList { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; }
+.missionList li { background: rgba(255, 255, 255, .08); border-radius: 14px; padding: 12px 14px; text-align: left; }
+.missionList .top { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-weight: 600; font-size: 16px; }
+.missionList .rw { flex: none; font-family: var(--ft); font-weight: 400; color: var(--yellow); font-size: 18px; letter-spacing: .5px; }
+.bar { height: 10px; border-radius: 5px; background: rgba(0, 0, 0, .4); margin-top: 8px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--orange), var(--yellow)); border-radius: 5px; }
+.missionList .num { font-size: 13px; color: #d8c6ee; margin-top: 4px; }
+
+/* ---------- fin de partida: monedas y misiones ---------- */
+.coinsWon { font-size: 20px; font-weight: 700; margin-top: -4px; }
+.coinsWon b { font-family: var(--ft); font-weight: 400; font-size: 26px; color: var(--yellow); letter-spacing: 1px; }
+.coinsWon span { font-size: 14px; color: #cdb8e6; font-weight: 600; }
+.doneMissions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; width: 100%; max-width: 340px; }
+.doneMissions li { background: rgba(124, 197, 32, .2); border: 1px solid rgba(155, 225, 93, .5); border-radius: 10px; padding: 6px 10px; font-size: 14px; font-weight: 600; }
+
+/* ---------- botón de súper ladrido ---------- */
+.barkBtn {
+  position: absolute;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--yellow) calc(var(--p, 0) * 1turn), rgba(255, 255, 255, .14) 0);
+  cursor: pointer;
+  touch-action: manipulation;
+  z-index: 3;
+}
+.barkBtn img { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #14081f; filter: grayscale(.85) brightness(.6); transition: filter .2s; pointer-events: none; }
+.barkBtn b {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--ft);
+  font-weight: 400;
+  font-size: 17px;
+  color: #fff;
+  background: var(--red);
+  padding: 3px 8px 1px;
+  border-radius: 8px;
+  white-space: nowrap;
+  display: none;
+  pointer-events: none;
+}
+.barkBtn.ready { animation: pulse .55s ease-in-out infinite; box-shadow: 0 0 26px rgba(255, 210, 63, .8); }
+.barkBtn.ready img { filter: none; }
+.barkBtn.ready b { display: block; }
+
+/* aviso de misión cumplida */
+.mtoast {
+  position: absolute;
+  top: auto;
+  bottom: calc(176px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  background: #fff;
+  color: #1a0726;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .45);
+  z-index: 5;
+  text-align: center;
+  animation: drop .3s ease-out;
+}
+@keyframes drop { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+.items .emo { font-size: 28px; width: 44px; text-align: center; flex: none; }
+.items.controls li { background: rgba(255, 123, 28, .14); }
+
+@media (max-height: 700px) {
+  #menu .inner { padding-top: 30px; }
+  .card { width: min(28vw, 112px); }
+  h1 { font-size: 38px; }
+  .btn.sm { font-size: 16px; padding: 9px 8px 6px; }
+  .grid4 { gap: 8px; }
+}
+.ranking li .nm small { font-size: 12px; font-weight: 600; color: #b79fd3; }

@@ -1,44 +1,55 @@
 # 🎃 Kaska vs Joselito · Juegos de Halloween
 
-Dos juegos para el móvil con **Kaska** (el bueno, disfrazado de Jack Skellington) y **Joselito** (el malo, disfrazado de araña).
+Juegos para el móvil con **Kaska** (el bueno, disfrazado de Jack Skellington) y **Joselito** (el malo, disfrazado de araña).
 
 **▶ Jugar:** https://caorjavier.github.io/kaska-vs-joselito/
 
-## 🍬 La noche de los caramelos
+## 🦴 Kaska contraataca
 
-Joselito tira caramelos y arañas desde su telaraña. Kaska tiene que coger los caramelos y esquivar las arañas.
+Joselito cuelga de su telaraña y ataca. Kaska tiene que esquivar y **lanzarle huesos** hasta vaciar su barra de vida. Cada nivel vuelve más fuerte.
 
-- **Arrastra el dedo** por la pantalla para mover a Kaska (en ordenador: ratón o flechas ← →).
-- 🍬 Caramelo: +10 · ✨ Caramelo dorado: +50
-- 🕷️ Araña: te quita una vida (empiezas con 3)
-- 🎃 Calabaza: escudo anti-arañas y puntos x2 durante 7 segundos
-- 🦴 Hueso: +1 vida
-- **Combo:** cada 8 caramelos seguidos sube el multiplicador (hasta x5). Si se te escapa uno, vuelve a x1.
-- **Furia de Joselito:** cada 25 segundos más o menos se enfada y lanza una lluvia de arañas. Si sobrevives, te llevas un bonus.
+**Controles**
+- 👆 **Arrastra el dedo**: mueve a Kaska.
+- 🦴 **Toca la pantalla**: lanza un hueso hacia arriba (gastas 1).
+- 💨 **Desliza rápido**: dash. Durante un momento no te hace daño nada.
+- 📣 **Botón GUAU**: súper ladrido. Se carga cogiendo caramelos y dando golpes. Borra todos los ataques de la pantalla, aturde a Joselito y le quita vida.
+- En ordenador: ratón para moverte, clic para lanzar, Shift para el dash, B para el ladrido.
+
+**Cómo funciona**
+- 🍬 Cada caramelo da +1 hueso (el dorado, +3). Cada vez que le das a Joselito, se le caen caramelos.
+- 🕷️ Las arañas quitan una vida. Puedes destruirlas con huesos.
+- Al bajar a la mitad de vida, Joselito **se enfada** y ataca más rápido.
+- Al derrotarlo suelta una piñata de caramelos, recuperas una vida y empieza el siguiente nivel.
+
+**Ataques nuevos por nivel**
+| Nivel | Ataque |
+|---|---|
+| 2 | 🕸️ Telarañas: si te pillan, vas lento |
+| 3 | 🕷️ Lluvia de arañas en abanico |
+| 4 | 💣 Caramelos bomba: ¡no los cojas! Dispárales |
+| 5 | ⚠️ Embestida: Joselito baja en picado donde estás (sale un aviso rojo) |
 
 ## 🔨 Aplasta a Joselito
 
-Joselito asoma de las calabazas de Halloween. **Tócalo rápido** para aplastarlo. Tienes 30 segundos.
+Joselito asoma de las calabazas. Tócalo rápido para aplastarlo, pero **no toques a Kaska**. Tienes 30 segundos.
 
-- Joselito: +10 · Joselito furioso (sale menos rato): +30
-- Kaska: **¡no lo toques!** −30 puntos y pierdes el combo
-- ✨ Caramelo dorado: +3 segundos de tiempo
-- **Combo:** cada 5 Joselitos seguidos sube el multiplicador (hasta x5). Si se te escapa uno, vuelve a x1.
-- Cuanto más avanza el tiempo, más rápido sale y se esconde.
+- Joselito: +10 · Joselito furioso: +30 · Kaska: −30 · Caramelo dorado: +3 segundos
+- Cada 5 Joselitos seguidos sube el combo (hasta x5).
 
-## Récords
+## 💰 Tienda, misiones y disfraces
 
-Cada juego tiene su propio récord y su top 10, guardados en el propio móvil. Al terminar puedes compartir tu puntuación por WhatsApp.
+- En cada partida ganas **monedas** (más cuanto más lejos llegas).
+- **Misiones**: siempre hay 3 activas (por ejemplo "Derrota a Joselito 3 veces"). Al cumplir una ganas monedas y sale otra más difícil.
+- **Mejoras**: vidas extra, huesos más fuertes, mochila más grande, imán de caramelos, escudo más largo, dash más rápido, súper ladrido más rápido y más tiempo en Aplasta.
+- **Disfraces** para Kaska: Jack Skellington, Bruja, Vampiro, Cabeza de calabaza y Rey de Halloween.
+
+Todo se guarda en el propio móvil: monedas, mejoras, récords y top 10 de cada juego.
 
 Consejo: en el móvil, usa "Añadir a pantalla de inicio" para tenerlo como una app a pantalla completa.
 
-## Ideas
-
-1. **La noche de los caramelos** ✅ hecho
-2. **Aplasta a Joselito** ✅ hecho
-3. **Huye de Joselito** (pendiente): carrera infinita. Kaska corre y salta las telarañas mientras Joselito le persigue; cuanto más lejos llegas, más puntos.
-
 ## Archivos
 
-- `index.html`, `style.css`, `game.js`: el juego (sin librerías ni instalación).
+- `index.html`, `style.css`: pantallas y estilos.
+- `game.js`: los dos juegos.
+- `progress.js`: monedas, mejoras, disfraces y misiones.
 - `img/`: caras recortadas de las fotos, iconos de la app e imagen para compartir.

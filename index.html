@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Kaska vs Joselito · La noche de los caramelos</title>
-<meta name="description" content="Ayuda a Kaska a coger los caramelos de Halloween y esquiva las arañas de Joselito. ¿Batirás el récord?">
+<title>Kaska vs Joselito · Juegos de Halloween</title>
+<meta name="description" content="Dos juegos de Halloween: coge los caramelos que tira Joselito o aplástalo en las calabazas. ¿Batirás el récord?">
 <meta name="theme-color" content="#14081f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kaska vs Joselito">
-<meta property="og:title" content="Kaska vs Joselito 🎃 La noche de los caramelos">
-<meta property="og:description" content="Coge caramelos, esquiva las arañas de Joselito y bate el récord.">
+<meta property="og:title" content="Kaska vs Joselito 🎃 Juegos de Halloween">
+<meta property="og:description" content="Coge caramelos, aplasta a Joselito y bate el récord.">
 <meta property="og:image" content="https://caorjavier.github.io/kaska-vs-joselito/img/og.jpg">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
@@ -32,7 +32,7 @@
   <section id="menu" class="screen">
     <div class="inner">
       <h1>Kaska<span class="vs">contra</span>Joselito</h1>
-      <p class="sub">🎃 La noche de los caramelos 🎃</p>
+      <p class="sub">🎃 Especial Halloween 🎃</p>
       <div class="cards">
         <figure class="card hero">
           <img src="img/kaska-carta.jpg" alt="Kaska disfrazado de Jack Skellington">
@@ -44,8 +44,16 @@
           <figcaption>JOSELITO<small>el malo</small></figcaption>
         </figure>
       </div>
-      <div class="best">🏆 Récord: <b id="menuBest">0</b> <span id="menuBestName"></span></div>
-      <button id="btnPlay" class="btn big">¡JUGAR!</button>
+      <div class="modes">
+        <button id="playCandy" class="mode candy">
+          <span class="mtxt"><b>🍬 La noche de los caramelos</b><small>Coge caramelos · esquiva arañas</small></span>
+          <span class="mbest">🏆<b id="bestCandy">0</b></span>
+        </button>
+        <button id="playWhack" class="mode whack">
+          <span class="mtxt"><b>🔨 Aplasta a Joselito</b><small>30 segundos · ¡no toques a Kaska!</small></span>
+          <span class="mbest">🏆<b id="bestWhack">0</b></span>
+        </button>
+      </div>
       <div class="row">
         <button id="btnRank" class="btn alt">Ranking</button>
         <button id="btnHelp" class="btn alt">Cómo jugar</button>
@@ -58,6 +66,21 @@
   <section id="help" class="screen hidden">
     <div class="inner">
       <h2>Cómo jugar</h2>
+      <div class="tabs" data-tabs="help">
+        <button data-mode="caramelos" class="on">🍬 Caramelos</button>
+        <button data-mode="aplasta">🔨 Aplasta</button>
+      </div>
+      <div class="pane" data-pane="help" data-mode="aplasta">
+        <p class="lead">Joselito se esconde en las calabazas de Halloween. <b>Tócalo rápido</b> para aplastarlo antes de que se vuelva a meter. Tienes <b>30 segundos</b>.</p>
+        <ul class="items">
+          <li><img class="face" src="img/joselito.png" alt=""><div><b>Joselito</b><span>+10 puntos</span></div></li>
+          <li><img class="face red" src="img/joselito-furioso.png" alt=""><div><b>Joselito furioso</b><span>+30 puntos, ¡pero es rapidísimo!</span></div></li>
+          <li><img class="face white" src="img/kaska.png" alt=""><div><b>Kaska</b><span>¡NO lo toques! −30 puntos</span></div></li>
+          <li><canvas data-icon="gold"></canvas><div><b>Caramelo dorado</b><span>+3 segundos de tiempo</span></div></li>
+        </ul>
+        <p class="tip">🔥 Cada 5 Joselitos seguidos sube el <b>COMBO</b> (hasta x5). Si se te escapa uno, vuelve a x1.</p>
+      </div>
+      <div class="pane" data-pane="help" data-mode="caramelos">
       <p class="lead">Joselito, el perro-araña, ha robado los caramelos de Halloween y los va tirando desde su telaraña. <b>Arrastra el dedo</b> por la pantalla para mover a Kaska.</p>
       <ul class="items">
         <li><canvas data-icon="candy"></canvas><div><b>Caramelo</b><span>+10 puntos</span></div></li>
@@ -68,6 +91,7 @@
       </ul>
       <p class="tip">🔥 Coge caramelos seguidos para subir el <b>COMBO</b> (hasta x5). Si se te escapa uno, vuelve a x1.</p>
       <p class="tip">😡 De vez en cuando Joselito <b>se enfada</b> y lanza una lluvia de arañas. Si sobrevives, ¡bonus!</p>
+      </div>
       <button class="btn back">Volver</button>
     </div>
   </section>
@@ -76,6 +100,10 @@
   <section id="rank" class="screen hidden">
     <div class="inner">
       <h2>🏆 Ranking</h2>
+      <div class="tabs" data-tabs="rank">
+        <button data-mode="caramelos" class="on">🍬 Caramelos</button>
+        <button data-mode="aplasta">🔨 Aplasta</button>
+      </div>
       <ol id="rankList" class="ranking"></ol>
       <p class="small" id="gamesPlayed"></p>
       <button class="btn back">Volver</button>
@@ -100,9 +128,9 @@
       <div class="score" id="overScore">0</div>
       <div class="rankTitle" id="overRank"></div>
       <div class="stats">
-        <div><b id="stCandy">0</b><span>caramelos</span></div>
-        <div><b id="stCombo">0</b><span>combo máx.</span></div>
-        <div><b id="stTime">0s</b><span>tiempo</span></div>
+        <div><b id="st1">0</b><span id="st1l">caramelos</span></div>
+        <div><b id="st2">0</b><span id="st2l">combo máx.</span></div>
+        <div><b id="st3">0s</b><span id="st3l">tiempo</span></div>
       </div>
       <label id="nameBox" class="nameBox hidden">
         <span>¡Entras en el ranking! Tu nombre:</span>

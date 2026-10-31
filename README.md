@@ -1,10 +1,12 @@
-# 🎃 Kaska vs Joselito · La noche de los caramelos
+# 🎃 Kaska vs Joselito · Juegos de Halloween
 
-Juego para el móvil: **Kaska** (el bueno, disfrazado de Jack Skellington) tiene que coger los caramelos de Halloween que tira **Joselito** (el malo, disfrazado de araña) y esquivar sus arañas.
+Dos juegos para el móvil con **Kaska** (el bueno, disfrazado de Jack Skellington) y **Joselito** (el malo, disfrazado de araña).
 
 **▶ Jugar:** https://caorjavier.github.io/kaska-vs-joselito/
 
-## Cómo se juega
+## 🍬 La noche de los caramelos
+
+Joselito tira caramelos y arañas desde su telaraña. Kaska tiene que coger los caramelos y esquivar las arañas.
 
 - **Arrastra el dedo** por la pantalla para mover a Kaska (en ordenador: ratón o flechas ← →).
 - 🍬 Caramelo: +10 · ✨ Caramelo dorado: +50
@@ -14,15 +16,27 @@ Juego para el móvil: **Kaska** (el bueno, disfrazado de Jack Skellington) tiene
 - **Combo:** cada 8 caramelos seguidos sube el multiplicador (hasta x5). Si se te escapa uno, vuelve a x1.
 - **Furia de Joselito:** cada 25 segundos más o menos se enfada y lanza una lluvia de arañas. Si sobrevives, te llevas un bonus.
 
-El récord y el top 10 se guardan en el propio móvil. Al terminar puedes compartir tu puntuación por WhatsApp.
+## 🔨 Aplasta a Joselito
+
+Joselito asoma de las calabazas de Halloween. **Tócalo rápido** para aplastarlo. Tienes 30 segundos.
+
+- Joselito: +10 · Joselito furioso (sale menos rato): +30
+- Kaska: **¡no lo toques!** −30 puntos y pierdes el combo
+- ✨ Caramelo dorado: +3 segundos de tiempo
+- **Combo:** cada 5 Joselitos seguidos sube el multiplicador (hasta x5). Si se te escapa uno, vuelve a x1.
+- Cuanto más avanza el tiempo, más rápido sale y se esconde.
+
+## Récords
+
+Cada juego tiene su propio récord y su top 10, guardados en el propio móvil. Al terminar puedes compartir tu puntuación por WhatsApp.
 
 Consejo: en el móvil, usa "Añadir a pantalla de inicio" para tenerlo como una app a pantalla completa.
 
-## Las 3 ideas que se plantearon
+## Ideas
 
-1. **La noche de los caramelos** (la que está hecha): coge caramelos, esquiva arañas, combos y récord.
-2. **Huye de Joselito**: carrera infinita. Kaska corre y salta las telarañas mientras Joselito le persigue; cuanto más lejos llegas, más puntos.
-3. **Aplasta a Joselito**: tipo "topo". Joselito asoma de las calabazas y hay que tocarlo rápido, pero si tocas a Kaska pierdes puntos. 30 segundos para hacer el récord.
+1. **La noche de los caramelos** ✅ hecho
+2. **Aplasta a Joselito** ✅ hecho
+3. **Huye de Joselito** (pendiente): carrera infinita. Kaska corre y salta las telarañas mientras Joselito le persigue; cuanto más lejos llegas, más puntos.
 
 ## Archivos
 

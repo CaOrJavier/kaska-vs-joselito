@@ -1,5 +1,5 @@
 'use strict';
-/* Kaska vs Joselito · La noche de los caramelos */
+/* Kaska vs Joselito · dos juegos: "La noche de los caramelos" y "Aplasta a Joselito" */
 (() => {
   const TAU = Math.PI * 2;
   const $ = (id) => document.getElementById(id);
@@ -41,14 +41,28 @@
     [900, 'Azote de arañas'], [1800, 'Terror de Joselito'], [3500, 'Rey de Halloween'], [7000, 'Leyenda canina'],
   ];
 
-  /* ---------- guardado ---------- */
+  // modo "Aplasta a Joselito"
+  const WHACK_TIME = 30;
+  const WHACK_STEP = 5;        // Joselitos seguidos para subir el multiplicador
+  const W_HIT = ['¡PAF!', '¡ZAS!', '¡BONK!', '¡TOMA!', '¡POW!', '¡CATAPLÁN!'];
+  const W_ESCAPE = ['¡Ja! ¡Lento!', '¡No me pillas!', '¡Muajaja!', '¡Fallaste!', '¡Por aquí!'];
+  const W_OUCH = ['¡Ay! ¡Que soy el bueno!', '¡Auuu!', '¡Eh, que soy Kaska!', '¡A mí no!'];
+  const W_OVER_TITLES = ['¡Se acabó el tiempo!', '¡Joselito sobrevive... por ahora!', '¡Tiempo!'];
+  const W_RANKS = [
+    [0, 'Aprendiz de aplastador'], [150, 'Martillo novato'], [400, 'Cazador de Joselitos'],
+    [800, 'Pesadilla de Joselito'], [1300, 'Aplastador profesional'], [2000, 'Rey de las calabazas'], [3000, 'Leyenda del martillazo'],
+  ];
+  const MODE_NAMES = { caramelos: 'La noche de los caramelos', aplasta: 'Aplasta a Joselito' };
+
+  /* ---------- guardado (un ranking por modo) ---------- */
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin guardado */ } },
   };
-  const getRanking = () => { const r = store.get('kvj_ranking', []); return Array.isArray(r) ? r : []; };
-  const saveRanking = (r) => store.set('kvj_ranking', r);
-  const bestScore = () => { const r = getRanking(); return r.length ? r[0].score : 0; };
+  const rankKey = (mode) => (mode === 'aplasta' ? 'kvj_ranking_aplasta' : 'kvj_ranking');
+  const getRanking = (mode = S.mode) => { const r = store.get(rankKey(mode), []); return Array.isArray(r) ? r : []; };
+  const saveRanking = (r, mode = S.mode) => store.set(rankKey(mode), r);
+  const bestScore = (mode = S.mode) => { const r = getRanking(mode); return r.length ? r[0].score : 0; };
 
   /* ---------- sonido (sintetizado, sin archivos) ---------- */
   const Snd = {
@@ -87,6 +101,9 @@
     phew() { [659, 784].forEach((f, i) => this.tone(f, 0.15, 'triangle', 0.08, 0, i * 0.1)); },
     over() { [523, 415, 330, 262].forEach((f, i) => this.tone(f, 0.28, 'triangle', 0.1, 0, i * 0.17)); },
     record() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone(f, 0.16, 'square', 0.05, 0, 0.75 + i * 0.1)); },
+    bonk(combo) { const f = 220 + Math.min(combo, 15) * 20; this.tone(f * 2, 0.08, 'square', 0.06, f); this.tone(95, 0.13, 'triangle', 0.13, 50); },
+    whiff() { this.tone(520, 0.06, 'triangle', 0.025, 300); },
+    tick() { this.tone(1250, 0.05, 'square', 0.04); },
   };
   const vib = (p) => { if (Snd.on && navigator.vibrate) { try { navigator.vibrate(p); } catch (e) { /* nada */ } } };
 
@@ -105,6 +122,8 @@
   let W = 0, H = 0, DPR = 1, U = 1, canvasLeft = 0;
 
   const S = {
+    mode: store.get('kvj_lastmode', 'caramelos') === 'aplasta' ? 'aplasta' : 'caramelos',
+    timeLeft: WHACK_TIME, taps: 0, hits: 0, whacked: 0, golds: 0, lastCall: false, paws: [],
     state: 'menu', clock: 0, t: 0, score: 0, lives: START_LIVES, combo: 0, maxCombo: 0, mult: 1, caught: 0,
     items: [], parts: [], popups: [], bats: [], nextBat: 3, stars: [],
     spawnT: 1, shieldT: 0, invT: 0, shake: 0, flash: 0, scorePulse: 0,
@@ -131,6 +150,7 @@
     K.tx = clamp(K.tx || W / 2, K.r, W - K.r); K.x = clamp(K.x || W / 2, K.r, W - K.r);
     J.tx = clamp(J.tx || W / 2, J.r, W - J.r); J.x = clamp(J.x || W / 2, J.r, W - J.r);
     J.y = J.baseY;
+    layoutWhack();
     buildBg();
   }
 
@@ -429,8 +449,9 @@
     S.popups.push({ x: clamp(x, 40 * U, W - 40 * U), y, text, color, size: size * U, life: 1 });
   }
   function banner(text, sub, color = '#ffd23f', dur = 2) { S.banner = { text, sub, color, t: 0, dur }; }
-  function jSay(text, t = 2.2) { S.jBub = { text, t, max: t }; }
-  function kSay(text, t = 1.6) { S.kBub = { text, t, max: t }; }
+  // x/y opcionales: si no se pasan, el bocadillo sale junto al personaje del modo caramelos
+  function jSay(text, t = 2.2, x = null, y = null) { S.jBub = { text, t, max: t, x, y }; }
+  function kSay(text, t = 1.6, x = null, y = null) { S.kBub = { text, t, max: t, x, y }; }
   function addScore(n) { S.score += n; S.scorePulse = 1; }
 
   /* ---------- juego ---------- */
@@ -628,6 +649,8 @@
     S.parts = S.parts.filter((p) => p.life > 0);
     for (const p of S.popups) { p.y -= 55 * U * dt; p.life -= dt * 0.9; }
     S.popups = S.popups.filter((p) => p.life > 0);
+    for (const p of S.paws) p.t += dt;
+    S.paws = S.paws.filter((p) => p.t < 0.35);
     if (S.banner) { S.banner.t += dt; if (S.banner.t > S.banner.dur) S.banner = null; }
     if (S.jBub) { S.jBub.t -= dt; if (S.jBub.t <= 0) S.jBub = null; }
     if (S.kBub) { S.kBub.t -= dt; if (S.kBub.t <= 0) S.kBub = null; }
@@ -650,10 +673,11 @@
   function update(dt) {
     S.clock += dt;
     if (S.state === 'paused') return;
-    if (S.state === 'playing') updateGame(dt, false);
+    const whack = S.mode === 'aplasta';
+    if (S.state === 'playing') { if (whack) updateWhack(dt, false); else updateGame(dt, false); }
     else if (S.state === 'dying') {
       S.dyingT -= dt;
-      updateGame(dt * 0.35, true);
+      if (whack) updateWhack(dt, true); else updateGame(dt * 0.35, true);
       if (S.dyingT <= 0) showOver();
     } else {
       // menú / fin: Kaska pasea solo
@@ -664,6 +688,305 @@
     }
     updateJ(dt);
     updateFx(dt);
+  }
+
+  /* ---------- modo Aplasta a Joselito ---------- */
+  // 9 calabazas (3x3). En cada una puede asomar alguien: o = { type: 'j' | 'jf' | 'k' | 'gold', ... }
+  const holes = Array.from({ length: 9 }, () => ({ x: 0, y: 0, w: 0, o: null }));
+  let HR = 30; // radio de las caras que salen de las calabazas
+
+  function layoutWhack() {
+    const top = 112 * U, bot = S.groundY + 6 * U;
+    const ch = (bot - top) / 3;
+    const w = Math.min((W / 3) * 0.8, ch / 1.36);
+    HR = w * 0.36;
+    const bh = w * 0.66;
+    holes.forEach((h, i) => {
+      const c = i % 3, r = Math.floor(i / 3);
+      h.x = W / 2 + (c - 1) * (W / 3) * 0.96;
+      h.w = w;
+      h.y = top + ch * r + (ch - (1.75 * HR + bh)) / 2 + 1.75 * HR; // altura del borde de la calabaza
+    });
+  }
+
+  const easeOutBack = (t) => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2; };
+  function occY(h, o) {
+    const e = o.state === 'up' ? easeOutBack(clamp(o.pop, 0, 1)) : o.pop;
+    return h.y + HR * 1.15 - e * HR * 1.9;
+  }
+
+  function whackInterval() {
+    const d = clamp(S.t / WHACK_TIME, 0, 1);
+    let i = 0.85 - d * 0.47;
+    if (S.timeLeft <= 5) i *= 0.8;
+    return i * rand(0.75, 1.2);
+  }
+
+  function whackSpawn() {
+    const d = clamp(S.t / WHACK_TIME, 0, 1);
+    const active = holes.filter((h) => h.o).length;
+    if (active >= 2 + Math.round(d * 2)) return;
+    const free = holes.filter((h) => !h.o);
+    if (!free.length) return;
+    const h = pick(free);
+    const hasGold = holes.some((x) => x.o && x.o.type === 'gold');
+    const pK = S.t < 3 ? 0 : 0.17 + d * 0.1;
+    const pF = S.t < 5 ? 0 : 0.14;
+    const pG = S.t < 7 || hasGold || S.golds >= 3 ? 0 : 0.05;
+    const r = Math.random();
+    let type = 'j';
+    if (r < pK) type = 'k';
+    else if (r < pK + pF) type = 'jf';
+    else if (r < pK + pF + pG) type = 'gold';
+    const base = 1.15 - d * 0.55;
+    const dur = type === 'jf' ? base * 0.7 : type === 'k' ? base * 1.25 : type === 'gold' ? 0.95 : base;
+    h.o = { type, t: 0, dur: dur * rand(0.9, 1.15), state: 'up', pop: 0, hitT: 0, seed: rand(0, TAU), word: '' };
+  }
+
+  function updateWhack(dt, ending) {
+    if (!ending) {
+      S.t += dt;
+      const prevSec = Math.ceil(S.timeLeft);
+      S.timeLeft -= dt;
+      const sec = Math.ceil(S.timeLeft);
+      if (sec !== prevSec && sec <= 5 && sec > 0) Snd.tick();
+      if (S.timeLeft > 5) S.lastCall = false;
+      else if (!S.lastCall) { S.lastCall = true; banner('¡ÚLTIMOS SEGUNDOS!', null, '#ff4b4b', 1.2); }
+      S.spawnT -= dt;
+      if (S.spawnT <= 0) { whackSpawn(); S.spawnT = whackInterval(); }
+      if (S.timeLeft <= 0) { S.timeLeft = 0; timeUp(); }
+    }
+    for (const h of holes) {
+      const o = h.o;
+      if (!o) continue;
+      if (o.state === 'up') {
+        o.pop = Math.min(1, o.pop + dt / 0.13);
+        o.t += dt;
+        if (ending || o.t >= o.dur) { o.state = 'down'; if (!ending) whackEscaped(h, o); }
+      } else if (o.state === 'hit') {
+        o.hitT += dt;
+        if (o.hitT > 0.42) o.state = 'down';
+      } else {
+        o.pop -= dt / 0.12;
+        if (o.pop <= 0) h.o = null;
+      }
+    }
+  }
+
+  function whackTap(x, y) {
+    S.taps++;
+    let best = null, bestD = Infinity;
+    for (const h of holes) {
+      const o = h.o;
+      if (!o || o.state !== 'up' || o.pop < 0.35) continue;
+      const dx = x - h.x, dy = y - occY(h, o), d2 = dx * dx + dy * dy, rr = HR * 1.3;
+      if (d2 < rr * rr && d2 < bestD) { best = h; bestD = d2; }
+    }
+    S.paws.push({ x, y, t: 0, rot: rand(-0.4, 0.4) });
+    if (!best) { Snd.whiff(); return; }
+    const o = best.o, cy = occY(best, o);
+    o.state = 'hit'; o.hitT = 0; o.word = pick(W_HIT);
+
+    if (o.type === 'k') {
+      if (S.combo >= 3) popup(best.x, cy + HR * 0.9, 'Combo perdido', '#ff6b6b', 18);
+      S.combo = 0; S.mult = 1;
+      const loss = Math.min(S.score, 30);
+      S.score -= loss; S.scorePulse = 1;
+      popup(best.x, cy, loss ? `-${loss}` : '¡Ay!', '#ff6b6b', 28);
+      S.shake = 10 * U; S.flash = 0.3;
+      Snd.hit(); vib(150);
+      kSay(pick(W_OUCH), 1.4, best.x, cy - HR - 30 * U);
+    } else if (o.type === 'gold') {
+      S.hits++; S.golds++;
+      S.timeLeft += 3;
+      addScore(20);
+      popup(best.x, cy - HR, '+3 s', '#ffd23f', 30);
+      burst(best.x, cy, ['#ffd23f', '#fff3a0', '#fff'], 22);
+      Snd.gold(); vib(30);
+    } else {
+      S.hits++; S.whacked++; S.combo++;
+      S.maxCombo = Math.max(S.maxCombo, S.combo);
+      const m = Math.min(MAX_MULT, 1 + Math.floor(S.combo / WHACK_STEP));
+      if (m > S.mult) { S.mult = m; Snd.combo(); banner(`¡COMBO x${m}!`, null, '#ff9b3d', 0.9); }
+      const pts = (o.type === 'jf' ? 30 : 10) * S.mult;
+      addScore(pts);
+      popup(best.x, cy - HR * 1.7, `+${pts}`, o.type === 'jf' ? '#ffd23f' : '#9be15d', o.type === 'jf' ? 26 : 22);
+      burst(best.x, cy, ['#ffd23f', '#fff', '#ff9b3d', '#1a0726'], 14);
+      Snd.bonk(S.combo); vib(25);
+      S.shake = Math.max(S.shake, 4 * U);
+    }
+  }
+
+  function whackEscaped(h, o) {
+    if (o.type !== 'j' && o.type !== 'jf') return;
+    if (S.combo >= 3) popup(h.x, h.y - HR * 2, 'Combo perdido', '#ff6b6b', 18);
+    if (S.combo > 0) Snd.miss();
+    S.combo = 0; S.mult = 1;
+    if (!S.jBub && Math.random() < 0.35) jSay(pick(W_ESCAPE), 1.2, h.x, h.y - HR * 2.4);
+  }
+
+  function timeUp() {
+    S.state = 'dying'; S.dyingT = 1.5;
+    banner('¡TIEMPO!', null, '#ffd23f', 1.5);
+    Snd.over(); vib([60, 40, 120]);
+    $('btnPause').classList.add('hidden');
+  }
+
+  function drawWhack() {
+    for (const h of holes) drawHole(h);
+    // efectos del golpe por encima de todo
+    for (const h of holes) {
+      const o = h.o;
+      if (!o || o.state !== 'hit' || o.type === 'k') continue;
+      const cy = occY(h, o);
+      ctx.fillStyle = '#ffd23f';
+      for (let i = 0; i < 3; i++) {
+        const a = S.clock * 7 + (i * TAU) / 3;
+        star4(ctx, h.x + Math.cos(a) * HR * 0.85, cy - HR * 1.05 + Math.sin(a) * HR * 0.22, HR * 0.2);
+      }
+      if (o.hitT < 0.3) comicBurst(h.x, cy - HR * 0.1, HR * (0.95 + o.hitT * 1.4), o.word, 1 - Math.max(0, o.hitT - 0.2) / 0.1);
+    }
+    for (const p of S.paws) drawPaw(p.x, p.y, 17 * U * (0.7 + p.t * 1.2), 1 - p.t / 0.35, p.rot);
+  }
+
+  function drawHole(h) {
+    const x = h.x, y = h.y, w = h.w;
+    const rx = w * 0.36, ry = w * 0.11, bw = w * 0.5, bh = w * 0.66;
+    // sombra en el suelo
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath(); ctx.ellipse(x, y + bh, bw * 0.95, w * 0.07, 0, 0, TAU); ctx.fill();
+    // boca de la calabaza (por dentro) y borde de atrás
+    ctx.fillStyle = '#2b1206';
+    ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#a2400a'; ctx.lineWidth = Math.max(2, w * 0.03);
+    ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, Math.PI, TAU); ctx.stroke();
+    // quien asoma (recortado para que no se vea por debajo de la calabaza)
+    const o = h.o;
+    if (o && o.pop > 0) {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(x - w, y - HR * 3.2, w * 2, HR * 3.2 + bh * 0.8); ctx.clip();
+      drawOccupant(h, o);
+      ctx.restore();
+    }
+    // cuerpo de la calabaza (por delante)
+    const g = ctx.createLinearGradient(x - bw, 0, x + bw, 0);
+    g.addColorStop(0, '#c2500c'); g.addColorStop(0.45, '#ff8a2a'); g.addColorStop(1, '#b8460a');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x - rx, y);
+    ctx.bezierCurveTo(x - bw * 1.08, y + bh * 0.12, x - bw * 1.05, y + bh, x, y + bh);
+    ctx.bezierCurveTo(x + bw * 1.05, y + bh, x + bw * 1.08, y + bh * 0.12, x + rx, y);
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI, false);
+    ctx.closePath(); ctx.fill();
+    // gajos
+    ctx.strokeStyle = 'rgba(120,40,0,.45)'; ctx.lineWidth = Math.max(1.5, w * 0.025);
+    for (const s of [-0.55, 0.55]) {
+      ctx.beginPath();
+      ctx.moveTo(x + s * rx, y + ry * 0.85);
+      ctx.quadraticCurveTo(x + s * bw * 1.2, y + bh * 0.55, x + s * bw * 0.45, y + bh * 0.98);
+      ctx.stroke();
+    }
+    // cara de Jack pintada (como el cubo de caramelos de la foto)
+    ctx.fillStyle = '#1a0b05';
+    const fy = y + bh * 0.42;
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x + s * w * 0.14, fy, w * 0.075, w * 0.1, s * 0.25, 0, TAU); ctx.fill(); }
+    ctx.beginPath();
+    ctx.ellipse(x - w * 0.025, fy + w * 0.11, w * 0.013, w * 0.022, 0, 0, TAU);
+    ctx.ellipse(x + w * 0.025, fy + w * 0.11, w * 0.013, w * 0.022, 0, 0, TAU);
+    ctx.fill();
+    const m0 = [x - w * 0.24, fy + w * 0.13], m1 = [x, fy + w * 0.3], m2 = [x + w * 0.24, fy + w * 0.13];
+    ctx.strokeStyle = '#1a0b05'; ctx.lineWidth = Math.max(1.5, w * 0.02); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(m0[0], m0[1]); ctx.quadraticCurveTo(m1[0], m1[1], m2[0], m2[1]); ctx.stroke();
+    ctx.lineWidth = Math.max(1, w * 0.013);
+    ctx.beginPath();
+    for (let i = 1; i <= 6; i++) {
+      const t = i / 7, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t;
+      const px = a * m0[0] + b * m1[0] + c * m2[0], py = a * m0[1] + b * m1[1] + c * m2[1];
+      ctx.moveTo(px, py - w * 0.035); ctx.lineTo(px, py + w * 0.035);
+    }
+    ctx.stroke();
+    // borde de delante con brillo
+    ctx.strokeStyle = '#ffb066'; ctx.lineWidth = Math.max(2, w * 0.03);
+    ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI, false); ctx.stroke();
+  }
+
+  function drawOccupant(h, o) {
+    const x = h.x;
+    let cy = occY(h, o);
+    if (o.type === 'gold') { drawGold(ctx, x, cy, HR * 0.55, Math.sin(S.clock * 3) * 0.4, S.clock); return; }
+    let sx = 1, sy = 1, ox = 0;
+    if (o.state === 'hit') {
+      const k = Math.min(1, o.hitT / 0.08);
+      if (o.type === 'k') ox = Math.sin(o.hitT * 60) * 4 * U;
+      else { sx = 1 + 0.18 * k; sy = 1 - 0.22 * k; cy += HR * 0.2 * k; }
+    } else if (o.type !== 'k') {
+      ox = Math.sin(S.clock * 9 + o.seed) * 3 * U; // Joselito se burla moviéndose
+    }
+    if (o.type !== 'k') {
+      spiderLegs(ctx, x + ox, cy, HR * 0.85, S.clock + o.seed, o.type === 'jf' ? 18 : 8, 0.55, 1.4, 1.95, '#0b080d', Math.max(2.5, HR * 0.16), true);
+    }
+    ctx.save();
+    ctx.translate(x + ox, cy); ctx.scale(sx, sy);
+    if (o.type === 'k') {
+      drawToken(IMG.k, 0, 0, HR, o.state === 'hit' ? '#ff4b4b' : '#ffffff');
+      drawBowtie(HR);
+      if (o.state === 'hit') { ctx.fillStyle = 'rgba(255,40,40,.35)'; ctx.beginPath(); ctx.arc(0, 0, HR, 0, TAU); ctx.fill(); }
+    } else {
+      const angry = o.type === 'jf' || o.state === 'hit';
+      drawToken(angry ? IMG.jf : IMG.j, 0, 0, HR, o.type === 'jf' ? '#ff3b3b' : '#120a18');
+    }
+    ctx.restore();
+  }
+
+  function comicBurst(x, y, r, word, alpha) {
+    ctx.save();
+    ctx.globalAlpha = clamp(alpha, 0, 1);
+    ctx.translate(x, y); ctx.rotate(-0.12);
+    ctx.beginPath();
+    const n = 11;
+    for (let i = 0; i < n * 2; i++) {
+      const a = (i / (n * 2)) * TAU, rr = i % 2 ? r * 0.62 : r;
+      const px = Math.cos(a) * rr, py = Math.sin(a) * rr * 0.8;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#ffd23f'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = '#1a0726'; ctx.stroke();
+    let size = r * 0.5;
+    ctx.font = `${size}px ${FT}`;
+    const tw = ctx.measureText(word).width;
+    if (tw > r * 1.45) size *= (r * 1.45) / tw;
+    txt(word, 0, 2, size, '#ff3b3b', 'center', FT, '#fff', size * 0.2);
+    ctx.restore();
+  }
+
+  function drawPaw(x, y, s, alpha, rot) {
+    ctx.save();
+    ctx.globalAlpha = clamp(alpha, 0, 1) * 0.85;
+    ctx.translate(x, y); ctx.rotate(rot);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(0, s * 0.25, s * 0.5, s * 0.42, 0, 0, TAU); ctx.fill();
+    for (const [dx, dy] of [[-0.55, -0.3], [-0.2, -0.62], [0.2, -0.62], [0.55, -0.3]]) {
+      ctx.beginPath(); ctx.ellipse(dx * s, dy * s, s * 0.17, s * 0.22, dx * 0.6, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawTimer() {
+    const cx = W - 84, cy = 32 * U, r = 19 * U;
+    const low = S.timeLeft <= 5;
+    const frac = clamp(S.timeLeft / WHACK_TIME, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.beginPath(); ctx.arc(cx, cy, r + 4 * U, 0, TAU); ctx.fill();
+    ctx.lineCap = 'round'; ctx.lineWidth = 4 * U;
+    ctx.strokeStyle = 'rgba(255,255,255,.15)';
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.stroke();
+    if (frac > 0) {
+      ctx.strokeStyle = low ? '#ff4b4b' : '#9be15d';
+      ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + frac * TAU); ctx.stroke();
+    }
+    const pulse = low ? 1 + 0.18 * Math.max(0, Math.sin(S.clock * 12)) : 1;
+    txt(String(Math.ceil(S.timeLeft)), cx, cy + U, 19 * U * pulse, low ? '#ff6b6b' : '#fff', 'center', FT, '#1a0726', 3.5 * U);
   }
 
   /* ---------- render ---------- */
@@ -682,9 +1005,12 @@
     ctx.globalAlpha = 1;
     for (const b of S.bats) drawBat(b.x, b.y + Math.sin(b.bob) * 10 * U, b.s, b.ph);
 
-    drawJoselito();
-    for (const it of S.items) drawItem(ctx, it, S.clock);
-    drawKaska();
+    if (S.mode === 'aplasta' && S.state !== 'menu') drawWhack();
+    else {
+      drawJoselito();
+      for (const it of S.items) drawItem(ctx, it, S.clock);
+      drawKaska();
+    }
 
     // partículas
     for (const p of S.parts) {
@@ -703,8 +1029,12 @@
     }
     ctx.globalAlpha = 1;
 
-    if (S.jBub) drawBubble(S.jBub.text, J.x, J.y + J.r + 40 * U, clamp(S.jBub.t * 4, 0, 1), -1);
-    if (S.kBub && S.state !== 'menu') drawBubble(S.kBub.text, K.x, K.y - K.r - 34 * U, clamp(S.kBub.t * 4, 0, 1), 1);
+    const jb = S.jBub, kb = S.kBub;
+    if (jb) {
+      if (jb.x == null) drawBubble(jb.text, J.x, J.y + J.r + 40 * U, clamp(jb.t * 4, 0, 1), -1);
+      else drawBubble(jb.text, jb.x, jb.y, clamp(jb.t * 4, 0, 1), 1);
+    }
+    if (kb && S.state !== 'menu') drawBubble(kb.text, kb.x == null ? K.x : kb.x, kb.y == null ? K.y - K.r - 34 * U : kb.y, clamp(kb.t * 4, 0, 1), 1);
     ctx.restore();
 
     // capa roja de furia y golpes
@@ -770,15 +1100,19 @@
     ctx.scale(1 + sq * 0.14, 1 - sq * 0.14);
     if (S.invT > 0 && Math.floor(S.invT * 12) % 2 === 0) ctx.globalAlpha = 0.35;
     drawToken(IMG.k, 0, 0, K.r, '#ffffff');
-    // pajarita de murciélago (como Jack Skellington)
+    drawBowtie(K.r);
+    ctx.restore();
+  }
+
+  // pajarita de murciélago (como Jack Skellington), centrada en (0,0) de la cara
+  function drawBowtie(r) {
     ctx.fillStyle = '#111';
-    const by = K.r * 0.98, bw = K.r * 0.42;
+    const by = r * 0.98, bw = r * 0.42;
     ctx.beginPath();
     ctx.moveTo(0, by); ctx.lineTo(-bw, by - bw * 0.5); ctx.quadraticCurveTo(-bw * 0.7, by, -bw, by + bw * 0.5); ctx.closePath();
     ctx.moveTo(0, by); ctx.lineTo(bw, by - bw * 0.5); ctx.quadraticCurveTo(bw * 0.7, by, bw, by + bw * 0.5); ctx.closePath();
     ctx.fill();
     ctx.beginPath(); ctx.arc(0, by, bw * 0.22, 0, TAU); ctx.fill();
-    ctx.restore();
   }
 
   function drawHUD() {
@@ -794,12 +1128,15 @@
     // combo
     if (S.combo > 0) {
       const bw = 84 * U, bh = 8 * U, bx = pad, by = 70 * U;
-      const prog = S.mult >= MAX_MULT ? 1 : (S.combo % COMBO_STEP) / COMBO_STEP;
+      const step = S.mode === 'aplasta' ? WHACK_STEP : COMBO_STEP;
+      const prog = S.mult >= MAX_MULT ? 1 : (S.combo % step) / step;
       ctx.fillStyle = 'rgba(0,0,0,.45)'; roundRectPath(ctx, bx, by, bw, bh, bh / 2); ctx.fill();
       ctx.fillStyle = S.mult >= MAX_MULT ? '#ff4f9a' : '#ff9b3d';
       if (prog > 0) { roundRectPath(ctx, bx, by, Math.max(bh, bw * prog), bh, bh / 2); ctx.fill(); }
       txt(`x${S.mult}`, bx + bw + 8 * U, by + bh / 2 + 1, 18 * U, S.mult > 1 ? '#ff9b3d' : '#fff', 'left', FT, '#1a0726', 3.5 * U);
     }
+
+    if (S.mode === 'aplasta') { drawTimer(); return; }
 
     // vidas
     const slots = Math.max(START_LIVES, S.lives);
@@ -849,15 +1186,20 @@
   function show(id) { for (const s of screens) $(s).classList.toggle('hidden', s !== id); }
   function hideScreens() { show(null); }
 
-  function rankTitle(score) { let t = RANKS[0][1]; for (const [min, name] of RANKS) if (score >= min) t = name; return t; }
+  function rankTitle(score, mode = S.mode) {
+    const list = mode === 'aplasta' ? W_RANKS : RANKS;
+    let t = list[0][1];
+    for (const [min, name] of list) if (score >= min) t = name;
+    return t;
+  }
   function fmtTime(s) { s = Math.floor(s); return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; }
   function medal(i) { return ['🥇', '🥈', '🥉'][i] || `${i + 1}.`; }
 
-  function renderRanking(el, limit) {
-    const r = getRanking();
+  function renderRanking(el, limit, mode = S.mode) {
+    const r = getRanking(mode);
     el.innerHTML = '';
     if (!r.length) { el.innerHTML = '<li class="empty">Aún no hay puntuaciones. ¡Estrena el ranking!</li>'; return; }
-    const myIdx = r.findIndex((e) => e.id && e.id === S.myId);
+    const myIdx = mode === S.mode ? r.findIndex((e) => e.id && e.id === S.myId) : -1;
     let gapShown = false;
     r.forEach((e, i) => {
       if (i >= limit && i !== myIdx) return;
@@ -875,30 +1217,44 @@
   function showMenu() {
     S.state = 'menu';
     S.items = []; S.banner = null; S.jBub = null; S.kBub = null; S.furyT = 0; S.furyWarned = false; S.shieldT = 0;
-    const r = getRanking();
-    $('menuBest').textContent = fmt(r.length ? r[0].score : 0);
-    $('menuBestName').textContent = r.length && r[0].name ? `(${r[0].name})` : '';
+    for (const h of holes) h.o = null;
+    $('bestCandy').textContent = fmt(bestScore('caramelos'));
+    $('bestWhack').textContent = fmt(bestScore('aplasta'));
     $('btnPause').classList.add('hidden');
     show('menu');
   }
 
-  function startGame() {
+  function startGame(mode = S.mode) {
     Snd.init();
+    S.mode = mode === 'aplasta' ? 'aplasta' : 'caramelos';
+    store.set('kvj_lastmode', S.mode);
     Object.assign(S, {
       state: 'playing', t: 0, score: 0, lives: START_LIVES, combo: 0, maxCombo: 0, mult: 1, caught: 0,
-      items: [], popups: [], spawnT: 1.1, shieldT: 0, invT: 0, shake: 0, flash: 0, scorePulse: 0,
+      items: [], popups: [], paws: [], spawnT: 1.1, shieldT: 0, invT: 0, shake: 0, flash: 0, scorePulse: 0,
       furyT: 0, nextFury: 24, furyWarned: false, furies: 0, nextTaunt: 6, jBub: null, kBub: null, banner: null, myId: null,
+      timeLeft: WHACK_TIME, taps: 0, hits: 0, whacked: 0, golds: 0, lastCall: false,
     });
+    for (const h of holes) h.o = null;
     K.x = K.tx = W / 2; K.vx = 0;
     hideScreens();
     $('btnPause').classList.remove('hidden');
-    banner('¡A POR LOS CARAMELOS!', 'Arrastra el dedo para mover a Kaska', '#ffd23f', 2.4);
-    jSay('¡Ni se te ocurra tocar mis caramelos!', 2.6);
+    if (S.mode === 'aplasta') {
+      S.spawnT = 0.9;
+      banner('¡APLASTA A JOSELITO!', '¡Pero no toques a Kaska!', '#ffd23f', 2.2);
+    } else {
+      banner('¡A POR LOS CARAMELOS!', 'Arrastra el dedo para mover a Kaska', '#ffd23f', 2.4);
+      jSay('¡Ni se te ocurra tocar mis caramelos!', 2.6);
+    }
     last = performance.now();
+  }
+
+  function setStats(stats) {
+    stats.forEach(([value, label], i) => { $(`st${i + 1}`).textContent = value; $(`st${i + 1}l`).textContent = label; });
   }
 
   function showOver() {
     S.state = 'over';
+    const whack = S.mode === 'aplasta';
     const ranking = getRanking();
     const prevBest = ranking.length ? ranking[0].score : 0;
     store.set('kvj_games', store.get('kvj_games', 0) + 1);
@@ -913,12 +1269,16 @@
       saveRanking(ranking);
       S.myId = entry.id;
     }
-    $('overTitle').textContent = isRecord ? '¡Joselito está furioso!' : pick(OVER_TITLES);
+    if (whack) {
+      $('overTitle').textContent = isRecord ? '¡Joselito ha quedado hecho puré!' : pick(W_OVER_TITLES);
+      const acc = S.taps ? Math.round((S.hits / S.taps) * 100) : 0;
+      setStats([[S.whacked, 'aplastados'], [S.maxCombo, 'combo máx.'], [`${acc}%`, 'puntería']]);
+    } else {
+      $('overTitle').textContent = isRecord ? '¡Joselito está furioso!' : pick(OVER_TITLES);
+      setStats([[S.caught, 'caramelos'], [S.maxCombo, 'combo máx.'], [fmtTime(S.t), 'tiempo']]);
+    }
     $('overScore').textContent = fmt(S.score);
     $('overRank').textContent = rankTitle(S.score);
-    $('stCandy').textContent = S.caught;
-    $('stCombo').textContent = S.maxCombo;
-    $('stTime').textContent = fmtTime(S.t);
     $('newRecord').classList.toggle('hidden', !isRecord);
     $('nameBox').classList.toggle('hidden', !qualifies);
     $('nameInput').value = store.get('kvj_name', '');
@@ -949,7 +1309,7 @@
 
   async function share() {
     const url = location.href.split('#')[0].split('?')[0];
-    const text = `🎃 He hecho ${fmt(S.score)} puntos en Kaska vs Joselito (${rankTitle(S.score)}). ¿Me superas?`;
+    const text = `🎃 He hecho ${fmt(S.score)} puntos en "${MODE_NAMES[S.mode]}" (Kaska vs Joselito) y soy ${rankTitle(S.score)}. ¿Me superas?`;
     if (navigator.share) {
       try { await navigator.share({ title: 'Kaska vs Joselito', text, url }); } catch (e) { /* cancelado */ }
       return;
@@ -979,12 +1339,16 @@
   let dragId = null, lastPX = 0;
 
   canvas.addEventListener('pointerdown', (e) => {
+    if (S.mode === 'aplasta') {
+      if (S.state === 'playing') { const r = canvas.getBoundingClientRect(); whackTap(e.clientX - r.left, e.clientY - r.top); }
+      return;
+    }
     if (e.pointerType === 'mouse') { K.tx = e.clientX - canvasLeft; return; }
     dragId = e.pointerId; lastPX = e.clientX;
     try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* nada */ }
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (S.state !== 'playing') return;
+    if (S.state !== 'playing' || S.mode === 'aplasta') return;
     if (e.pointerType === 'mouse') { K.tx = clamp(e.clientX - canvasLeft, K.r, W - K.r); return; }
     if (e.pointerId !== dragId) return;
     const dx = e.clientX - lastPX; lastPX = e.clientX;
@@ -1000,7 +1364,7 @@
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { if (S.state === 'playing') pause(); else if (S.state === 'paused') resume(); }
-    if ((e.key === ' ' || e.key === 'Enter') && (S.state === 'menu' || S.state === 'over')) { e.preventDefault(); startGame(); }
+    if ((e.key === ' ' || e.key === 'Enter') && (S.state === 'menu' || S.state === 'over')) { e.preventDefault(); startGame(S.mode); }
   });
   window.addEventListener('keyup', (e) => {
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
@@ -1010,13 +1374,24 @@
   window.addEventListener('blur', () => { keys.left = keys.right = false; });
   window.addEventListener('resize', resize);
 
-  $('btnPlay').addEventListener('click', startGame);
-  $('btnAgain').addEventListener('click', startGame);
+  // pestañas de modo en Ranking y Cómo jugar
+  function selectTab(group, mode) {
+    document.querySelectorAll(`[data-tabs="${group}"] button`).forEach((b) => b.classList.toggle('on', b.dataset.mode === mode));
+    if (group === 'help') document.querySelectorAll('[data-pane="help"]').forEach((p) => p.classList.toggle('hidden', p.dataset.mode !== mode));
+    if (group === 'rank') renderRanking($('rankList'), 10, mode);
+  }
+  document.querySelectorAll('[data-tabs] button').forEach((b) => {
+    b.addEventListener('click', () => selectTab(b.parentElement.dataset.tabs, b.dataset.mode));
+  });
+
+  $('playCandy').addEventListener('click', () => startGame('caramelos'));
+  $('playWhack').addEventListener('click', () => startGame('aplasta'));
+  $('btnAgain').addEventListener('click', () => startGame(S.mode));
   $('btnMenu').addEventListener('click', showMenu);
-  $('btnHelp').addEventListener('click', () => { Snd.init(); show('help'); });
+  $('btnHelp').addEventListener('click', () => { Snd.init(); selectTab('help', S.mode); show('help'); });
   $('btnRank').addEventListener('click', () => {
     S.myId = null;
-    renderRanking($('rankList'), 10);
+    selectTab('rank', S.mode);
     const g = store.get('kvj_games', 0);
     $('gamesPlayed').textContent = g ? `Partidas jugadas en este móvil: ${g}` : '';
     show('rank');
@@ -1041,7 +1416,7 @@
   $('nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); });
 
   // modo prueba: abre la web con #debug para tocar el estado desde la consola
-  if (location.hash === '#debug') window.kvj = { S, K, J, startGame, showOver };
+  if (location.hash === '#debug') window.kvj = { S, K, J, holes, startGame, showOver, whackTap, occY: (i) => occY(holes[i], holes[i].o), step: (dt, n = 1) => { for (let i = 0; i < n; i++) update(dt); render(); } };
 
   /* ---------- arranque ---------- */
   resize();

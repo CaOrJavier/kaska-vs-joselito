@@ -17,6 +17,13 @@
   const MAX_MULT = 5;
   const COMBO_STEP = 8;   // golpes/caramelos seguidos para subir el multiplicador (Contraataca)
   const WHACK_STEP = 5;   // Joselitos seguidos para subir el multiplicador (Aplasta)
+  const FINAL_LEVEL = 6;  // jefe final: Joselito, Rey de las Arañas
+  const COMBO_WORDS = { 2: '¡GENIAL!', 3: '¡BRUTAL!', 4: '¡TREMENDO!', 5: '¡IMPARABLE!' };
+  const CREDITS = [
+    ['KASKA VS JOSELITO', 'title'], ['', ''], ['Protagonista', 'h'], ['KASKA (el bueno)', ''], ['', ''],
+    ['Villano (pero no tanto)', 'h'], ['JOSELITO (el malo)', ''], ['', ''], ['Vestuario', 'h'], ['Jack Skellington y araña peluda', ''],
+    ['', ''], ['¡Feliz Halloween! 🎃', 'title'], ['', ''], ['Gracias por jugar', 'h'],
+  ];
 
   const CANDY_COLS = [
     { main: '#ff4f9a', dark: '#c21f69' },
@@ -67,57 +74,8 @@
   const saveRanking = (r, mode = S.mode) => store.set(rankKey(mode), r);
   const bestScore = (mode = S.mode) => { const r = getRanking(mode); return r.length ? r[0].score : 0; };
 
-  /* ---------- sonido (sintetizado, sin archivos) ---------- */
-  const Snd = {
-    ctx: null,
-    on: store.get('kvj_sound', true),
-    init() {
-      if (!this.ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) this.ctx = new AC();
-      }
-      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
-    },
-    tone(f, d, type = 'square', v = 0.06, f2 = 0, delay = 0) {
-      if (!this.on || !this.ctx) return;
-      const c = this.ctx, t = c.currentTime + delay;
-      const o = c.createOscillator(), g = c.createGain();
-      o.type = type;
-      o.frequency.setValueAtTime(f, t);
-      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(v, t + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-      o.connect(g).connect(c.destination);
-      o.start(t);
-      o.stop(t + d + 0.03);
-    },
-    catch(combo) { const f = 520 + ((combo - 1) % COMBO_STEP) * 45; this.tone(f, 0.09, 'square', 0.045, f * 1.5); },
-    gold() { [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.12, 'triangle', 0.09, 0, i * 0.055)); },
-    hit() { this.tone(240, 0.4, 'sawtooth', 0.11, 50); this.tone(120, 0.3, 'square', 0.05, 40); },
-    power() { [392, 523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.14, 'square', 0.045, 0, i * 0.07)); },
-    combo() { this.tone(880, 0.08, 'square', 0.05); this.tone(1320, 0.14, 'square', 0.05, 0, 0.08); },
-    life() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.12, 'triangle', 0.09, 0, i * 0.06)); },
-    miss() { this.tone(330, 0.18, 'triangle', 0.06, 160); },
-    bounce() { this.tone(300, 0.1, 'triangle', 0.08, 900); },
-    growl() { this.tone(110, 0.9, 'sawtooth', 0.09, 55); this.tone(116, 0.9, 'square', 0.04, 60); },
-    over() { [523, 415, 330, 262].forEach((f, i) => this.tone(f, 0.28, 'triangle', 0.1, 0, i * 0.17)); },
-    record() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone(f, 0.16, 'square', 0.05, 0, 0.75 + i * 0.1)); },
-    bonk(combo) { const f = 220 + Math.min(combo, 15) * 20; this.tone(f * 2, 0.08, 'square', 0.06, f); this.tone(95, 0.13, 'triangle', 0.13, 50); },
-    whiff() { this.tone(520, 0.06, 'triangle', 0.025, 300); },
-    tick() { this.tone(1250, 0.05, 'square', 0.04); },
-    throw() { this.tone(650, 0.07, 'triangle', 0.05, 1200); },
-    thwack() { this.tone(190, 0.09, 'square', 0.07, 90); this.tone(900, 0.05, 'triangle', 0.04, 500); },
-    empty() { this.tone(150, 0.09, 'square', 0.04); },
-    woof() { this.tone(420, 0.28, 'sawtooth', 0.14, 90); this.tone(210, 0.32, 'square', 0.08, 60); },
-    dash() { this.tone(300, 0.12, 'triangle', 0.07, 1300); },
-    boom() { this.tone(130, 0.32, 'sawtooth', 0.1, 40); },
-    web() { this.tone(220, 0.25, 'triangle', 0.08, 110); },
-    win() { [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, 'square', 0.05, 0, i * 0.09)); },
-    coin() { this.tone(988, 0.07, 'square', 0.04); this.tone(1319, 0.14, 'square', 0.04, 0, 0.07); },
-    warn() { this.tone(440, 0.1, 'square', 0.05); this.tone(440, 0.1, 'square', 0.05, 0, 0.18); },
-    ready() { this.tone(660, 0.1, 'triangle', 0.07); this.tone(990, 0.16, 'triangle', 0.07, 0, 0.1); },
-  };
+  /* ---------- sonido y música: ver audio.js ---------- */
+  const Snd = window.KVJA;
   const vib = (p) => { if (Snd.on && navigator.vibrate) { try { navigator.vibrate(p); } catch (e) { /* nada */ } } };
 
   /* ---------- imágenes ---------- */
@@ -143,10 +101,13 @@
     bark: 0, barkWave: null, barks: 0, spidersShot: 0, golds: 0, nextTaunt: 4, hints: [], barkHinted: false,
     jBub: null, kBub: null, banner: null, dyingT: 0, groundY: 0, myId: null, doneMissions: [],
     whackTime: 30, timeLeft: 30, taps: 0, hits: 0, whacked: 0, wgolds: 0, lastCall: false,
+    // cine y sensaciones: barras negras, textos, cámara lenta, parón de impacto, destellos, latido
+    cine: null, bars: 0, barsT: 0, barsUntil: 0, caption: null, slowT: 0, slowF: 1, hitStop: 0, wflash: 0,
+    koT: 0, koX: 0, koY: 0, hbT: 0, hbPulse: 0, endingT: 0, endless: false, victory: false, musicT: 0, overMusicT: 0, overRun: 0,
   };
   const K = { x: 0, tx: 0, y: 0, r: 40, vx: 0, tilt: 0, squash: 0, dashT: 0, dashV: 0, dashCD: 0, immT: 0, lastDir: 1, trail: [], readyFlash: 0 };
   const J = {
-    x: 0, tx: 0, y: 0, baseY: 0, r: 42, phase: 0, retT: 0, throwT: 0, laughT: 0,
+    x: 0, tx: 0, y: 0, baseY: 0, r: 42, phase: 0, retT: 0, throwT: 0, laughT: 0, kick: 0, big: false, enterDur: 1.2,
     hp: 1, maxHp: 1, hpLag: 1, hitT: 0, stunT: 0, atkT: 5, atk: null, dive: null, enterT: 0, defeatT: 0, spin: 0, angry: false,
   };
 
@@ -160,10 +121,11 @@
     canvas.height = Math.round(H * DPR);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     U = Math.min(W / 400, H / 700);
-    K.r = 44 * U; J.r = 42 * U;
+    K.r = 44 * U; J.r = 42 * U * (J.big ? 1.3 : 1);
     S.groundY = H - 58 * U;
     K.y = S.groundY - K.r - 6 * U;
     J.baseY = 132 * U + J.r;
+    if (!S.cine) { CAM.x = CAM.tx = W / 2; CAM.y = CAM.ty = H / 2; CAM.z = CAM.tz = 1; }
     K.tx = clamp(K.tx || W / 2, K.r, W - K.r); K.x = clamp(K.x || W / 2, K.r, W - K.r);
     J.tx = clamp(J.tx || W / 2, J.r, W - J.r); J.x = clamp(J.x || W / 2, J.r, W - J.r);
     if (!J.dive && J.enterT <= 0 && J.defeatT <= 0) J.y = J.baseY;
@@ -590,11 +552,11 @@
     if (mtoastT > 0) {
       mtoastT -= dt;
       if (mtoastT <= 0) el.classList.add('hidden');
-    } else if (toastQ.length && (S.state === 'playing' || S.state === 'dying')) {
+    } else if (toastQ.length && S.state === 'playing') {
       el.textContent = toastQ.shift();
       el.classList.remove('hidden');
       mtoastT = 2.6;
-      Snd.coin();
+      Snd.coin(); Snd.chime({ v: 0.04, t: 0.15 });
     }
   }
 
@@ -605,9 +567,9 @@
     const m = Math.min(MAX_MULT, 1 + Math.floor(S.combo / step));
     if (m > S.mult) {
       S.mult = m;
-      Snd.combo();
-      if (S.mode === 'aplasta') banner(`¡COMBO x${m}!`, null, '#ff9b3d', 0.9);
-      else { popup(K.x, K.y - K.r * 2.3, `COMBO x${m}!`, '#ff9b3d', 30); kSay(pick(K_HAPPY)); }
+      Snd.comboWord(m);
+      banner(COMBO_WORDS[m] || `¡COMBO x${m}!`, `combo x${m}`, '#ff9b3d', 1.0);
+      if (S.mode === 'batalla') { kSay(pick(K_HAPPY)); punch(1.04); }
     }
     missionsDone(P.peak('combo', S.combo));
   }
@@ -616,17 +578,25 @@
      MODO 1: KASKA CONTRAATACA (combate por niveles)
      ===================================================================== */
   function startLevel(n) {
+    const final = n === FINAL_LEVEL && !S.endless;
     S.level = n; S.levelT = 0; S.hitsTaken = 0; S.betweenT = 0;
-    J.maxHp = 10 + n * 6; J.hp = J.maxHp; J.hpLag = 0;
-    J.angry = false; J.stunT = 0; J.atk = null; J.dive = null; J.defeatT = 0; J.spin = 0; J.hitT = 0;
-    J.enterT = 1.2; J.x = J.tx = W / 2; J.y = -J.r * 2;
+    J.big = final;
+    J.r = 42 * U * (final ? 1.3 : 1);
+    J.baseY = 132 * U + J.r;
+    J.maxHp = final ? 75 : 10 + n * 6; J.hp = J.maxHp; J.hpLag = 0;
+    J.angry = false; J.stunT = 0; J.atk = null; J.dive = null; J.defeatT = 0; J.spin = 0; J.hitT = 0; J.kick = 0;
+    J.enterT = J.enterDur = 1.2; J.x = J.tx = W / 2; J.y = -J.r * 2;
     J.atkT = rand(3, 4.5); S.spawnT = 1.5;
     if (n > 1) {
       if (S.lives < MAX_LIVES) { S.lives++; popup(K.x, K.y - K.r * 1.8, '+1 VIDA', '#ff7b9a', 24); }
       S.ammo = Math.max(S.ammo, Math.ceil(S.maxAmmo / 2));
-      banner(`NIVEL ${n}`, LEVEL_NEWS[n] || '¡Joselito vuelve más fuerte!', '#ffd23f', 2.4);
-      jSay(n >= 5 ? '¡Ahora sí que vas a ver!' : '¡Esta vez va en serio!', 2);
       missionsDone(P.peak('level', n));
+      if (!final) {
+        banner(`NIVEL ${n}`, LEVEL_NEWS[n] || '¡Joselito vuelve más fuerte!', '#ffd23f', 2.4);
+        jSay(n >= 5 ? '¡Ahora sí que vas a ver!' : '¡Esta vez va en serio!', 2);
+        S.barsT = 0.55; S.barsUntil = S.clock + 2.2; // barras de cine mientras vuelve
+        Snd.whoosh({ v: 0.07, f: 2400, f2: 300, d: 0.5 }); Snd.growl({ d: 0.7, v: 0.12, t: 0.4 });
+      }
     }
   }
 
@@ -664,7 +634,7 @@
     throwItem(type, J.x, J.y + J.r * 0.5);
   }
 
-  function specialInterval() { return Math.max(2.6, 6.5 - S.level * 0.35) * (J.angry ? 0.7 : 1) * rand(0.85, 1.2); }
+  function specialInterval() { return Math.max(2.6, 6.5 - S.level * 0.35) * (J.angry ? 0.7 : 1) * (J.big ? 0.85 : 1) * rand(0.85, 1.2); }
   function startSpecial() {
     J.atkT = specialInterval();
     const a = [];
@@ -680,7 +650,7 @@
       return;
     }
     J.atk = { type, t: 0, warn: type === 'rain' ? 0.75 : 0.35, done: false };
-    if (type === 'rain') Snd.warn();
+    if (type === 'rain') { Snd.warn(); Snd.skitter(); }
   }
   function updateSpecial(dt) {
     const a = J.atk;
@@ -694,15 +664,17 @@
           const aim = ((K.x + (i - (n - 1) / 2) * 90 * U) - J.x) / fallTime();
           throwItem('web', J.x, y0, aim * rand(0.8, 1.1));
         }
-        Snd.web();
+        Snd.whoosh({ v: 0.06, f: 900, f2: 400, d: 0.25 });
       } else if (a.type === 'rain') {
         const n = S.level <= 2 ? 3 : S.level >= 6 ? 7 : 5;
         for (let i = 0; i < n; i++) throwItem('spider', J.x, y0, (i / (n - 1) - 0.5) * W * 0.9, 1.05);
         jSay('¡Lluvia de arañas!', 1.2);
+        Snd.skitter(); Snd.barkJ({ v: 0.14 });
       } else if (a.type === 'bomb') {
         const n = S.level >= 6 ? 3 : 2;
         for (let i = 0; i < n; i++) throwItem('bomb', J.x, y0, rand(-1, 1) * W * 0.25);
         jSay('¡Caramelos... especiales!', 1.4);
+        Snd.laugh({ v: 0.12 });
       }
     }
     if (a.t >= a.warn + 0.3) J.atk = null;
@@ -714,13 +686,13 @@
     if (d.phase === 'warn') {
       J.x += (d.x - J.x) * (1 - Math.exp(-dt * 10));
       J.y = J.baseY + Math.sin(S.clock * 40) * 2 * U;
-      if (d.t >= 0.9) { d.phase = 'down'; d.t = 0; Snd.dash(); }
+      if (d.t >= 0.9) { d.phase = 'down'; d.t = 0; Snd.dash(); Snd.barkJ({ v: 0.2, size: 1.3 }); }
     } else if (d.phase === 'down') {
       const k = Math.min(1, d.t / 0.26);
       J.x = d.x; J.y = J.baseY + (K.y - J.baseY) * k * k;
-      if (k >= 1) { d.phase = 'bottom'; d.t = 0; S.shake = 10 * U; Snd.boom(); burst(J.x, S.groundY, ['#3a2452', '#fff', '#170a24'], 18); }
+      if (k >= 1) { d.phase = 'bottom'; d.t = 0; S.shake = 10 * U; punch(1.05); Snd.thud({ v: 0.35 }); Snd.boom(); burst(J.x, S.groundY, ['#3a2452', '#fff', '#170a24'], 18); }
     } else if (d.phase === 'bottom') {
-      if (d.t >= 0.35) { d.phase = 'up'; d.t = 0; }
+      if (d.t >= 0.35) { d.phase = 'up'; d.t = 0; Snd.whoosh({ v: 0.05, f: 400, f2: 1600, d: 0.4 }); }
     } else {
       const k = Math.min(1, d.t / 0.5);
       J.y = K.y + (J.baseY - K.y) * (1 - (1 - k) * (1 - k));
@@ -733,11 +705,11 @@
   }
 
   function updateBossAI(dt) {
-    if (J.enterT > 0 || J.defeatT > 0) return;
+    if (J.enterT > 0 || J.defeatT > 0 || J.hp <= 0) return;
     if (!J.angry && J.hp <= J.maxHp * 0.5) {
       J.angry = true;
-      banner('¡JOSELITO SE ENFADA!', 'Ahora ataca más rápido', '#ff4b4b', 1.8);
-      Snd.growl(); vib(90);
+      banner(J.big ? '¡FURIA DEL REY!' : '¡JOSELITO SE ENFADA!', 'Ahora ataca más rápido', '#ff4b4b', 1.8);
+      Snd.growlJ(); vib(90); punch(1.06); S.shake = 8 * U;
       jSay('¡¡GRRRRRR!!', 1.6);
     }
     if (J.stunT > 0) return; // aturdido por el súper ladrido
@@ -747,7 +719,10 @@
     if (J.atkT <= 0 && !J.atk && !J.dive) startSpecial();
     if (J.atk) updateSpecial(dt);
     S.nextTaunt -= dt;
-    if (S.nextTaunt <= 0) { if (!S.jBub) jSay(pick(J_TAUNTS)); S.nextTaunt = rand(7, 12); }
+    if (S.nextTaunt <= 0) {
+      if (!S.jBub) { jSay(pick(J_TAUNTS)); if (Math.random() < 0.5) Snd.barkJ({ v: 0.12 }); else Snd.growl({ d: 0.5, v: 0.1 }); }
+      S.nextTaunt = rand(7, 12);
+    }
   }
 
   function throwBone() {
@@ -759,6 +734,7 @@
     S.ammo--; S.boneCD = 0.09;
     S.bones.push({ x: K.x, y: K.y - K.r, vy: -980 * U, rot: rand(0, TAU), gone: false });
     Snd.throw();
+    if (Math.random() < 0.18) Snd.barkK({ v: 0.08 });
     K.squash = 0.6;
   }
 
@@ -783,6 +759,7 @@
     missionsDone(P.event('barks'));
     S.barkWave = { t: 0 };
     Snd.woof(); vib([40, 30, 90]); S.shake = 14 * U; S.flash = 0;
+    S.hitStop = 0.08; punch(1.1); S.wflash = 0.25;
     kSay('¡¡GUAAAU!!', 1.2);
     for (const it of S.items) {
       if (!it.dead && !it.taken && (it.type === 'spider' || it.type === 'web' || it.type === 'bomb')) { destroyEnemy(it, false); addScore(10); }
@@ -790,15 +767,16 @@
     if (J.hp > 0 && J.enterT <= 0 && J.defeatT <= 0 && S.betweenT <= 0) {
       J.stunT = 2.5; J.atk = null;
       if (J.dive) { J.dive.phase = 'up'; J.dive.t = 0; }
-      J.hp = Math.max(0, J.hp - 3 * P.val('fuerza')); J.hitT = 0.15;
+      J.hp = Math.max(0, J.hp - 3 * P.val('fuerza')); J.hitT = 0.15; J.kick = 16 * U;
       popup(J.x, J.y + J.r * 1.4, '¡ATURDIDO!', '#ffd23f', 24);
+      Snd.yelpJ(0.15); Snd.stun();
       if (J.hp <= 0) defeatJoselito();
     }
   }
 
   function hitJoselito(x, y) {
     const dmg = P.val('fuerza') * (J.stunT > 0 ? 1.5 : 1);
-    J.hp = Math.max(0, J.hp - dmg); J.hitT = 0.12;
+    J.hp = Math.max(0, J.hp - dmg); J.hitT = 0.12; J.kick = Math.min(18 * U, J.kick + 7 * U);
     bumpCombo();
     addScore(5 * S.mult);
     popup(x, y - 10 * U, `+${5 * S.mult}`, '#ffb3b3', 16);
@@ -813,28 +791,42 @@
   }
 
   function defeatJoselito() {
+    const final = J.big;
     S.defeats++;
     missionsDone(P.event('beatJ'));
     J.defeatT = 1.8; J.spin = 0; J.atk = null; J.dive = null; J.stunT = 0;
-    S.betweenT = 4.2;
+    // K.O.: parón, cámara lenta, zoom y destello
+    S.hitStop = 0.16; S.slowT = 1.1; S.slowF = 0.3; S.wflash = 0.55;
+    S.koT = 1.4; S.koX = J.x; S.koY = J.y;
+    camTo(J.x, J.y + 60 * U, 1.35, 9);
+    Snd.impact({ v: 0.32 }); Snd.yelpJ(0.05); Snd.whineJ(0.45);
+    vib([50, 40, 50, 40, 120]); S.shake = 12 * U;
+    for (const it of S.items) if (!it.dead && !it.taken && (it.type === 'spider' || it.type === 'web' || it.type === 'bomb')) destroyEnemy(it, false);
+    burst(J.x, J.y, ['#ffd23f', '#ff4f9a', '#4fd1ff', '#9be15d', '#fff'], 40, 380);
+    if (final) { // fin de la historia
+      addScore(5000);
+      S.endingT = 1.5;
+      jSay('¡Nooo! ¡Mis caramelos!', 1.6);
+      return;
+    }
+    S.betweenT = 4.4;
     const perfect = S.hitsTaken === 0;
     const bonus = 250 * S.level + (perfect ? 300 : 0);
     addScore(bonus);
-    banner('¡JOSELITO DERROTADO!', perfect ? `+${fmt(bonus)} · ¡sin recibir daño!` : `+${fmt(bonus)} puntos`, '#9be15d', 2.3);
-    Snd.win(); vib([50, 40, 50, 40, 120]); S.shake = 12 * U;
+    banner('¡JOSELITO DERROTADO!', perfect ? `+${fmt(bonus)} · ¡sin recibir daño!` : `+${fmt(bonus)} puntos`, '#9be15d', 2.6);
+    Snd.win(0.7);
     jSay(pick(J_DEFEAT), 1.6);
-    for (const it of S.items) if (!it.dead && !it.taken && (it.type === 'spider' || it.type === 'web' || it.type === 'bomb')) destroyEnemy(it, false);
-    burst(J.x, J.y, ['#ffd23f', '#ff4f9a', '#4fd1ff', '#9be15d', '#fff'], 40, 380);
     // piñata de caramelos
     for (let i = 0; i < 12; i++) throwItem(i < 2 ? 'gold' : 'candy', J.x, J.y, rand(-1, 1) * W * 0.35, rand(0.55, 0.85)).bonus = true;
   }
 
   function destroyEnemy(it, byBone) {
     if (it.type === 'bomb') { it.taken = true; explode(it.x, it.y, false); addScore(15); popup(it.x, it.y, '+15', '#ff9bf0', 18); }
-    else if (it.type === 'web') { it.taken = true; burst(it.x, it.y, ['#fff', '#e0e0ff'], 10); addScore(5); }
+    else if (it.type === 'web') { it.taken = true; burst(it.x, it.y, ['#fff', '#e0e0ff'], 10); addScore(5); if (byBone) Snd.squish(); }
     else { // araña: sale volando
       it.dead = true; it.vy = -500 * U; it.vx = rand(-1, 1) * 320 * U; it.vr = 14;
       addScore(5);
+      if (byBone) Snd.squish();
     }
     if (byBone) {
       if (it.type === 'spider') { S.spidersShot++; missionsDone(P.event('spidersShot')); popup(it.x, it.y, '+5', '#fff', 16); }
@@ -849,9 +841,11 @@
     S.invT = 1.6; S.shake = 14 * U; S.flash = 0.45;
     if (S.combo >= COMBO_STEP) popup(K.x, K.y - K.r * 2.2, 'Combo perdido', '#ff6b6b', 20);
     S.combo = 0; S.mult = 1;
-    Snd.hit(); vib(160);
+    vib(160);
+    if (S.lives <= 0) { die(); return; }
+    Snd.hit(); punch(1.04);
     J.laughT = 1.4; jSay(pick(J_LAUGH), 1.5);
-    if (S.lives <= 0) die();
+    if (Math.random() < 0.6) Snd.laugh({ t: 0.3, v: 0.13 });
   }
 
   function catchItem(it) {
@@ -923,10 +917,8 @@
   }
 
   function die() {
-    S.state = 'dying'; S.dyingT = 1.5;
-    Snd.over(); vib([80, 60, 220]);
-    J.laughT = 3; jSay('¡MUAJAJAJA!', 3);
-    $('btnPause').classList.add('hidden');
+    J.atk = null; J.dive = null;
+    startCine('ko');
   }
 
   function moveKaska(dt, dying) {
@@ -954,6 +946,7 @@
     for (const b of S.bones) {
       b.y += b.vy * dt; b.rot += 16 * dt;
       if (b.y < -20) { b.gone = true; continue; }
+      if (S.state !== 'playing') continue;
       if (J.hp > 0 && J.enterT <= 0 && J.defeatT <= 0 && S.betweenT <= 0) {
         const rr = J.r * 0.95 + 8 * U;
         if (dist2(b.x, b.y, J.x, J.y) < rr * rr) { b.gone = true; hitJoselito(b.x, b.y); continue; }
@@ -1006,10 +999,21 @@
     if (K.dashCD > 0) { K.dashCD -= dt; if (K.dashCD <= 0) K.readyFlash = 0.35; }
     if (J.stunT > 0) J.stunT -= dt;
     if (!dying) {
-      if (S.betweenT > 0) { S.betweenT -= dt; if (S.betweenT <= 0) startLevel(S.level + 1); }
-      else updateBossAI(dt);
+      if (S.betweenT > 0) {
+        S.betweenT -= dt;
+        if (S.betweenT <= 0) {
+          const n = S.level + 1;
+          startLevel(n);
+          if (n === FINAL_LEVEL && !S.endless) startCine('finalboss');
+        }
+      } else updateBossAI(dt);
       if (J.dive) updateDive(dt);
       if (S.hints.length && S.t >= S.hints[0].t) { const h = S.hints.shift(); kSay(h.text, 2.6); }
+      // latido cuando solo queda una vida
+      if (S.lives === 1 && S.state === 'playing') {
+        S.hbT -= dt;
+        if (S.hbT <= 0) { S.hbT = 0.9; S.hbPulse = 1; Snd.heartbeat(); }
+      }
     }
     updateBones(dt);
     updateItems(dt, dying);
@@ -1020,10 +1024,11 @@
     J.throwT = Math.max(0, J.throwT - dt);
     J.laughT = Math.max(0, J.laughT - dt);
     J.hitT = Math.max(0, J.hitT - dt);
+    J.kick *= Math.exp(-dt * 12);
     J.hpLag += (J.hp - J.hpLag) * (1 - Math.exp(-dt * (J.hpLag < J.hp ? 2.5 : 3.5)));
     if (J.enterT > 0) {
       J.enterT -= dt;
-      const k = clamp(1 - J.enterT / 1.2, 0, 1);
+      const k = clamp(1 - J.enterT / J.enterDur, 0, 1);
       J.y = -J.r * 2 + (J.baseY + J.r * 2) * easeOutBack(k);
       return;
     }
@@ -1111,7 +1116,7 @@
       const sec = Math.ceil(S.timeLeft);
       if (sec !== prevSec && sec <= 5 && sec > 0) Snd.tick();
       if (S.timeLeft > 5) S.lastCall = false;
-      else if (!S.lastCall) { S.lastCall = true; banner('¡ÚLTIMOS SEGUNDOS!', null, '#ff4b4b', 1.2); }
+      else if (!S.lastCall) { S.lastCall = true; banner('¡ÚLTIMOS SEGUNDOS!', null, '#ff4b4b', 1.2); Snd.warn(); }
       S.spawnT -= dt;
       if (S.spawnT <= 0) { whackSpawn(); S.spawnT = whackInterval(); }
       if (S.timeLeft <= 0) { S.timeLeft = 0; timeUp(); }
@@ -1181,14 +1186,12 @@
     if (S.combo >= 3) popup(h.x, h.y - HR * 2, 'Combo perdido', '#ff6b6b', 18);
     if (S.combo > 0) Snd.miss();
     S.combo = 0; S.mult = 1;
-    if (!S.jBub && Math.random() < 0.35) jSay(pick(W_ESCAPE), 1.2, h.x, h.y - HR * 2.4);
+    if (!S.jBub && Math.random() < 0.35) { jSay(pick(W_ESCAPE), 1.2, h.x, h.y - HR * 2.4); Snd.laugh({ v: 0.09 }); }
   }
 
   function timeUp() {
-    S.state = 'dying'; S.dyingT = 1.5;
-    banner('¡TIEMPO!', null, '#ffd23f', 1.5);
-    Snd.over(); vib([60, 40, 120]);
-    $('btnPause').classList.add('hidden');
+    S.banner = null;
+    startCine('timeup');
   }
 
   function drawWhack() {
@@ -1208,19 +1211,32 @@
   }
 
   function drawHole(h) {
-    const x = h.x, y = h.y, w = h.w;
+    drawBowlShape(h.x, h.y, h.w, h.o && h.o.pop > 0 ? () => drawOccupant(h, h.o) : null, true);
+  }
+
+  // cubo de calabaza lleno de caramelos (el botín de Kaska en las cinemáticas)
+  const BOWL_CANDY = [[-0.2, -0.04, 0], [0.12, -0.08, 1], [0, 0.02, 2], [-0.05, -0.12, 3], [0.24, 0, 4]];
+  function drawBowl(x, y, w, candies, shadow) {
+    drawBowlShape(x, y, w, candies ? () => {
+      for (const [dx, dy, i] of BOWL_CANDY) drawCandy(ctx, x + dx * w, y + dy * w, w * 0.13, i * 1.3, CANDY_COLS[i]);
+    } : null, shadow);
+  }
+
+  // calabaza con cara de Jack pintada; inner() dibuja lo que asoma por la boca
+  function drawBowlShape(x, y, w, inner, shadow) {
     const rx = w * 0.36, ry = w * 0.11, bw = w * 0.5, bh = w * 0.66;
-    ctx.fillStyle = 'rgba(0,0,0,.35)';
-    ctx.beginPath(); ctx.ellipse(x, y + bh, bw * 0.95, w * 0.07, 0, 0, TAU); ctx.fill();
+    if (shadow) {
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.beginPath(); ctx.ellipse(x, y + bh, bw * 0.95, w * 0.07, 0, 0, TAU); ctx.fill();
+    }
     ctx.fillStyle = '#2b1206';
     ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill();
     ctx.strokeStyle = '#a2400a'; ctx.lineWidth = Math.max(2, w * 0.03);
     ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, Math.PI, TAU); ctx.stroke();
-    const o = h.o;
-    if (o && o.pop > 0) {
+    if (inner) {
       ctx.save();
-      ctx.beginPath(); ctx.rect(x - w, y - HR * 3.4, w * 2, HR * 3.4 + bh * 0.8); ctx.clip();
-      drawOccupant(h, o);
+      ctx.beginPath(); ctx.rect(x - w, y - w * 1.3, w * 2, w * 1.3 + bh * 0.8); ctx.clip();
+      inner();
       ctx.restore();
     }
     const g = ctx.createLinearGradient(x - bw, 0, x + bw, 0);
@@ -1339,6 +1355,368 @@
     txt(String(Math.ceil(S.timeLeft)), cx, cy + U, 19 * U * pulse, low ? '#ff6b6b' : '#fff', 'center', FT, '#1a0726', 3.5 * U);
   }
 
+  /* =====================================================================
+     CINEMÁTICAS: cámara, barras de cine, textos y escenas
+     ===================================================================== */
+  const CAM = { x: 0, y: 0, z: 1, tx: 0, ty: 0, tz: 1, k: 5 };
+  function camTo(x, y, z, k = 5) { CAM.tx = x; CAM.ty = y; CAM.tz = z; CAM.k = k; }
+  function camReset(k = 4) { camTo(W / 2, H / 2, 1, k); }
+  function punch(z = 1.06) { CAM.z = Math.max(CAM.z, z); }
+  function updateCam(dt) {
+    const f = 1 - Math.exp(-dt * CAM.k);
+    CAM.x += (CAM.tx - CAM.x) * f; CAM.y += (CAM.ty - CAM.y) * f; CAM.z += (CAM.tz - CAM.z) * f;
+  }
+  function applyCam() {
+    const z = CAM.z;
+    if (Math.abs(z - 1) < 0.002 && Math.abs(CAM.x - W / 2) < 0.5 && Math.abs(CAM.y - H / 2) < 0.5) return;
+    const hw = W / (2 * z), hh = H / (2 * z);
+    // con barras de cine la cámara puede bajar un poco: lo que queda debajo lo tapa la barra negra
+    const extra = (H * 0.12 * S.bars) / z;
+    const cx = z >= 1 ? clamp(CAM.x, hw, W - hw) : W / 2, cy = z >= 1 ? clamp(CAM.y, hh, H - hh + extra) : H / 2;
+    ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-cx, -cy);
+  }
+
+  function caption(text) { S.caption = text ? { text, t0: S.clock } : null; }
+  function wrapText(text, maxW) {
+    const lines = [];
+    let line = '';
+    for (const w of text.split(' ')) {
+      const test = line ? `${line} ${w}` : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test;
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+  function drawBars() {
+    if (S.bars < 0.01) return;
+    const h = H * 0.12 * S.bars;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, h); ctx.fillRect(0, H - h, W, h);
+    const c = S.caption;
+    if (!c || h < 30) return;
+    // texto que se va escribiendo letra a letra en la barra de abajo
+    ctx.font = `600 ${15.5 * U}px ${FB}`;
+    const lines = wrapText(c.text, W - 36 * U);
+    let n = Math.floor((S.clock - c.t0) * 40);
+    const lh = 21 * U, y0 = H - h / 2 - ((lines.length - 1) * lh) / 2;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+    lines.forEach((l, i) => {
+      if (n <= 0) return;
+      ctx.fillText(l.slice(0, n), W / 2 - ctx.measureText(l).width / 2, y0 + i * lh);
+      n -= l.length + 1;
+    });
+  }
+  // texto grande que entra de golpe
+  function slam(text, t, y, size, color, sub) {
+    if (t < 0) return;
+    const k = Math.min(1, t / 0.18);
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.translate(W / 2, y); ctx.scale(2.4 - 1.4 * k, 2.4 - 1.4 * k);
+    let sz = size;
+    ctx.font = `${sz}px ${FT}`;
+    const w = ctx.measureText(text).width;
+    if (w > W * 0.9) sz *= (W * 0.9) / w;
+    txt(text, 0, 0, sz, color, 'center', FT, '#1a0726', sz * 0.2);
+    ctx.restore();
+    if (sub && t > 0.35) {
+      ctx.globalAlpha = Math.min(1, (t - 0.35) / 0.3);
+      txt(sub, W / 2, y + size * 0.85, 17 * U, '#fff', 'center', FB, '#1a0726', 4 * U);
+      ctx.globalAlpha = 1;
+    }
+  }
+  function drawCredits(t) {
+    ctx.fillStyle = `rgba(8,3,14,${Math.min(0.7, t * 1.2)})`;
+    ctx.fillRect(0, 0, W, H);
+    CREDITS.forEach(([line, kind], i) => {
+      if (!line) return;
+      const y = H * 0.9 + i * 34 * U - t * 85 * U;
+      if (y < -20 || y > H + 20) return;
+      ctx.globalAlpha = clamp(Math.min((H - y) / (60 * U), y / (80 * U)), 0, 1);
+      if (kind === 'title') txt(line, W / 2, y, 26 * U, '#ffd23f');
+      else if (kind === 'h') txt(line, W / 2, y, 14 * U, '#ff9b3d', 'center', FB, '#1a0726', 3 * U);
+      else txt(line, W / 2, y, 20 * U, '#fff');
+    });
+    ctx.globalAlpha = 1;
+  }
+  // Joselito-araña colgando de su hilo (para las escenas)
+  function drawSpiderDog(x, y, r, angry, legSpeed = 4, thread = true) {
+    if (thread) { ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, -H); ctx.lineTo(x, y - r); ctx.stroke(); }
+    spiderLegs(ctx, x, y, r, S.clock, legSpeed, 0.55, 1.45, 2.05, '#0b080d', Math.max(4, r * 0.21), true);
+    token(ctx, angry ? IMG.jf : IMG.j, x, y, r, angry ? '#ff3b3b' : '#120a18');
+  }
+  function dizzy(x, y, r) {
+    ctx.fillStyle = '#ffd23f';
+    for (let i = 0; i < 4; i++) {
+      const a = S.clock * 6 + (i * TAU) / 4;
+      star4(ctx, x + Math.cos(a) * r * 1.05, y - r * 1.1 + Math.sin(a) * r * 0.25, r * 0.2);
+    }
+  }
+
+  const cue = (c, time, fn) => { if (c.t >= time && !c.fired.has(time)) { c.fired.add(time); fn(); } };
+  const phase = (c, a, b) => clamp((c.t - a) / (b - a), 0, 1);
+  const easeOut = (k) => 1 - (1 - k) * (1 - k);
+
+  const CINES = {
+    /* Historia: Joselito roba el cubo de caramelos de Kaska */
+    intro: {
+      skip: true, dur: 11.8, scene: 'custom',
+      start(c) {
+        c.kr = 52 * U; c.kx = W * 0.3; c.ky = S.groundY - c.kr - 6 * U;
+        c.bw = 100 * U; c.bx = W * 0.7; c.by = S.groundY - c.bw * 0.66 - 2 * U;
+        c.jr = 46 * U; c.jx = c.bx; c.jy = -c.jr * 3; c.grab = false; c.drops = []; c.angry = false; c.title = -1;
+        S.items = []; S.bones = []; S.jBub = null; S.kBub = null; S.banner = null;
+        CAM.x = W / 2; CAM.y = H * 0.64; CAM.z = 1.14; camTo(W / 2, H * 0.64, 1.05, 0.6);
+        Snd.music('menu');
+      },
+      update(c, dt) {
+        cue(c, 0.25, () => caption('31 de octubre. Noche de Halloween...'));
+        cue(c, 1.4, () => { Snd.barkK2(); kSay('¡Guau guau!', 1.3, c.kx, c.ky - c.kr - 30 * U); });
+        cue(c, 3.0, () => { caption('Kaska había reunido el mejor botín de caramelos del barrio.'); Snd.pant(); });
+        cue(c, 4.0, () => { Snd.chime({ v: 0.06 }); burst(c.bx, c.by - 10 * U, ['#ffd23f', '#fff', '#ff4f9a'], 14, 160); });
+        cue(c, 5.6, () => { caption('Pero alguien le vigilaba desde las alturas...'); Snd.stopMusic(0.8); Snd.rumble(2.2); camTo(c.bx, H * 0.58, 1.1, 1.4); });
+        cue(c, 6.4, () => Snd.growl({ d: 1.1, v: 0.15 }));
+        if (c.t < 7.9) c.jy = -c.jr * 3 + (c.by - c.jr * 1.05 + c.jr * 3) * easeOut(phase(c, 5.8, 7.3));
+        cue(c, 7.3, () => {
+          c.grab = true; S.shake = 6 * U;
+          Snd.laugh();
+          jSay('¡MUAJAJA! ¡Ahora son MÍOS!', 1.8, c.jx, c.jy - c.jr - 34 * U);
+          for (let i = 0; i < 6; i++) c.drops.push({ x: c.bx + rand(-30, 30) * U, y: c.by - 6 * U, vx: rand(-150, 150) * U, vy: rand(-420, -220) * U, rot: rand(0, TAU), col: pick(CANDY_COLS) });
+        });
+        if (c.t >= 7.9) c.jy -= dt * (200 + (c.t - 7.9) * 900) * U; // se lo lleva hacia arriba
+        cue(c, 7.95, () => Snd.whoosh({ v: 0.08, f: 300, f2: 1800, d: 0.5 }));
+        cue(c, 8.9, () => { c.angry = true; caption(null); camTo(c.kx, c.ky - 30 * U, 1.55, 3); Snd.growl({ d: 0.7, v: 0.16, p: 1.4 }); });
+        cue(c, 9.4, () => { Snd.barkK2({ v: 0.26 }); kSay('¡GRRR! ¡Devuélvemelos!', 1.4, c.kx, c.ky - c.kr - 30 * U); });
+        cue(c, 10.4, () => { c.title = c.t; Snd.impact(); S.shake = 16 * U; S.wflash = 0.5; camReset(6); });
+        cue(c, 11.2, () => { S.barsT = 0; });
+        for (const d of c.drops) {
+          d.vy += 1300 * U * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.rot += 6 * dt;
+          if (d.y > S.groundY - 6 * U) { d.y = S.groundY - 6 * U; d.vy *= -0.35; d.vx *= 0.7; }
+        }
+      },
+      draw(c) {
+        const by = c.grab ? c.jy + c.jr * 1.05 : c.by;
+        if (by > -c.bw * 2) drawBowl(c.bx, by, c.bw, true, !c.grab);
+        if (c.jy > -c.jr * 2.5) drawSpiderDog(c.jx, c.jy, c.jr, c.grab, c.grab ? 14 : 4);
+        for (const d of c.drops) drawCandy(ctx, d.x, d.y, 13 * U, d.rot, d.col);
+        const hop = !c.angry && c.t < 5.6 ? Math.abs(Math.sin(c.t * 7)) * 6 * U : 0;
+        const sh = c.angry ? rand(-2, 2) * U : 0;
+        drawKaskaToken(ctx, c.kx + sh, c.ky - hop, c.kr, P.costume(), c.angry ? '#ff3b3b' : null);
+      },
+      overlay(c) {
+        if (c.title < 0) return;
+        slam('¡KASKA', c.t - c.title, H * 0.36, 54 * U, '#ff7b1c');
+        slam('CONTRAATACA!', c.t - c.title - 0.12, H * 0.36 + 58 * U, 44 * U, '#ffd23f');
+      },
+      end(c) {
+        store.set('kvj_intro', true);
+        if (c.after === 'menu') { showMenu(); return; }
+        startLevel(1);
+        startCine('ready');
+      },
+    },
+
+    /* "¿Listo? ¡A luchar!" antes de empezar */
+    ready: {
+      skip: false, dur: 2.1, scene: 'auto',
+      start() { Snd.music(S.mode === 'aplasta' ? 'whack' : 'battle'); camTo(W / 2, H * 0.56, 1, 4); },
+      update(c, dt) {
+        if (S.mode === 'batalla') updateJ(dt);
+        cue(c, 0.3, () => Snd.tick());
+        cue(c, 1.2, () => { Snd.barkK2({ v: 0.22 }); Snd.impact({ v: 0.16 }); S.shake = 6 * U; });
+        cue(c, 1.7, () => { S.barsT = 0; });
+      },
+      overlay(c) {
+        const whack = S.mode === 'aplasta';
+        if (c.t < 1.2) slam(whack ? '¿LISTO?' : `NIVEL ${S.level}`, c.t - 0.3, H * 0.44, 48 * U, '#ffd23f', whack ? '¡No toques a Kaska!' : '¿Listo?');
+        else slam(whack ? '¡A APLASTAR!' : '¡A LUCHAR!', c.t - 1.2, H * 0.44, 52 * U, '#ff7b1c');
+      },
+      end() { resumePlay(); },
+    },
+
+    /* Llega el jefe final */
+    finalboss: {
+      skip: false, dur: 4.4, scene: 'battle',
+      start() {
+        Snd.stopMusic(0.5); Snd.rumble(2.6);
+        J.enterT = J.enterDur = 2.2;
+        camTo(W / 2, J.baseY + 40 * U, 1.3, 1.2);
+      },
+      update(c, dt) {
+        updateJ(dt);
+        cue(c, 1.5, () => { Snd.impact({ v: 0.35 }); S.shake = 14 * U; });
+        cue(c, 2.2, () => { Snd.laugh(); jSay('¡Nadie había llegado tan lejos! ¡Prepárate!', 2.2); });
+        cue(c, 3.4, () => { Snd.growlJ(); camReset(3); });
+        cue(c, 3.9, () => { S.barsT = 0; });
+      },
+      overlay(c) {
+        const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.7);
+        g.addColorStop(0, 'rgba(60,0,10,0)'); g.addColorStop(1, `rgba(60,0,10,${0.5 * Math.min(1, c.t)})`);
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        slam('¡JEFE FINAL!', c.t - 1.5, H * 0.66, 50 * U, '#ff3b3b', 'Joselito, Rey de las Arañas');
+      },
+      end() { resumePlay(); },
+    },
+
+    /* Final de la historia + créditos */
+    ending: {
+      skip: true, dur: 17, scene: 'custom',
+      start(c) {
+        S.items = []; S.bones = []; S.jBub = null; S.kBub = null; S.banner = null;
+        Snd.stopMusic(0.3);
+        c.kr = K.r; c.kx = K.x; c.ky = K.y;
+        c.jr = 50 * U; c.jx = W * 0.7; c.jy = -c.jr * 2; c.jvy = 0; c.landed = false;
+        c.bw = 86 * U; c.bx = W * 0.5; c.by = -140 * U; c.bLanded = false; c.gift = -1; c.happy = false; c.hearts = [];
+        c.fin = -1; c.credits = -1;
+        camTo(W / 2, H * 0.66, 1.12, 1.5);
+      },
+      update(c, dt) {
+        c.kx += (W * 0.28 - c.kx) * (1 - Math.exp(-dt * 2.5));
+        if (!c.landed) {
+          c.jvy += 1800 * U * dt; c.jy += c.jvy * dt;
+          const gy = S.groundY - c.jr - 4 * U;
+          if (c.jy >= gy) { c.jy = gy; c.landed = true; Snd.thud(); Snd.stun(); S.shake = 10 * U; burst(c.jx, S.groundY, ['#3a2452', '#fff', '#5a3a72'], 16); }
+        }
+        cue(c, 1.6, () => caption('Joselito, derrotado, devolvió el cubo de caramelos...'));
+        if (c.t > 2.0 && !c.bLanded) {
+          c.by += (300 + (c.t - 2) * 1200) * U * dt;
+          const gy = S.groundY - c.bw * 0.66 - 2 * U;
+          if (c.by >= gy) { c.by = gy; c.bLanded = true; Snd.thud({ v: 0.2 }); Snd.chime({ v: 0.05 }); burst(c.bx, c.by, ['#ffd23f', '#ff4f9a', '#4fd1ff'], 18, 200); }
+        }
+        cue(c, 3.4, () => { Snd.whineJ(); jSay('Perdón, Kaska... ¿me das uno?', 2.4, c.jx, c.jy - c.jr - 34 * U); });
+        cue(c, 6.0, () => caption('Y Kaska, que es el bueno, decidió compartir.'));
+        cue(c, 6.6, () => { Snd.barkK2(); kSay('¡Vale! ¡Para los dos!', 2.2, c.kx, c.ky - c.kr - 34 * U); });
+        cue(c, 7.3, () => { c.gift = c.t; Snd.whoosh({ v: 0.06 }); });
+        cue(c, 8.1, () => { c.happy = true; Snd.chomp(); Snd.chomp({ t: 0.1 }); Snd.pant({ t: 0.3 }); });
+        cue(c, 8.8, () => { caption(null); camTo(W / 2, H * 0.6, 1, 1.2); Snd.victory(); });
+        cue(c, 9.3, () => { c.fin = c.t; Snd.impact({ v: 0.25 }); });
+        cue(c, 10.2, () => { Snd.howl({ p: 1.25 }); Snd.howl({ p: 0.95, t: 0.35 }); });
+        cue(c, 11.5, () => { c.credits = c.t; Snd.music('menu'); });
+        if (c.happy && Math.random() < dt * 6) c.hearts.push({ x: rand(c.kx, c.jx), y: S.groundY - 80 * U, vy: -rand(40, 90) * U, life: 2 });
+        for (const h of c.hearts) { h.y += h.vy * dt; h.life -= dt; }
+        c.hearts = c.hearts.filter((h) => h.life > 0);
+      },
+      draw(c) {
+        drawBowl(c.bx, c.by, c.bw, true, c.bLanded);
+        if (c.gift >= 0) {
+          const k = clamp((c.t - c.gift) / 0.8, 0, 1);
+          if (k < 1) drawCandy(ctx, c.bx + (c.jx - c.bx) * k, c.by - 10 * U + (c.jy - c.by) * k - Math.sin(k * Math.PI) * 120 * U, 14 * U, k * 12, GOLD);
+        }
+        const jHop = c.happy ? Math.abs(Math.sin(c.t * 6 + 1)) * 8 * U : 0;
+        drawSpiderDog(c.jx, c.jy - jHop, c.jr, false, c.happy ? 6 : 1.5, !c.landed);
+        if (c.landed && !c.happy) dizzy(c.jx, c.jy, c.jr);
+        const kHop = c.happy ? Math.abs(Math.sin(c.t * 6)) * 8 * U : 0;
+        drawKaskaToken(ctx, c.kx, c.ky - kHop, c.kr, P.costume());
+        for (const h of c.hearts) { ctx.globalAlpha = Math.min(1, h.life); drawHeart(ctx, h.x, h.y, 9 * U, '#ff4b6e', null); }
+        ctx.globalAlpha = 1;
+      },
+      overlay(c) {
+        if (c.fin >= 0 && c.credits < 0) slam('FIN', c.t - c.fin, H * 0.3, 84 * U, '#ffd23f', '¡Has salvado Halloween!');
+        if (c.credits >= 0) drawCredits(c.t - c.credits);
+      },
+      end() { finishStory(); },
+    },
+
+    /* Kaska pierde la última vida */
+    ko: {
+      skip: false, dur: 2.9, scene: 'battle',
+      start() {
+        Snd.stopMusic(0.2); Snd.hit();
+        camTo(K.x, K.y - 30 * U, 1.6, 7);
+        S.flash = 0.6; S.shake = 12 * U;
+        vib([80, 60, 220]);
+      },
+      update(c, dt) {
+        const sdt = dt * 0.3;
+        updateItems(sdt, true); updateBones(sdt); updateJ(sdt);
+        cue(c, 0.7, () => { Snd.laugh(); J.laughT = 3; jSay('¡MUAJAJAJA!', 2); });
+        cue(c, 1.1, () => Snd.whineK());
+        cue(c, 1.4, () => Snd.over());
+      },
+      overlay(c) {
+        ctx.fillStyle = `rgba(15,0,25,${Math.min(0.45, c.t * 0.4)})`;
+        ctx.fillRect(0, 0, W, H);
+        slam('¡KASKA HA CAÍDO!', c.t - 1.0, H * 0.4, 40 * U, '#ff4b4b');
+      },
+      end() { showOver(); },
+    },
+
+    /* Se acaba el tiempo en Aplasta */
+    timeup: {
+      skip: false, dur: 1.9, scene: 'whack',
+      start() { Snd.stopMusic(0.2); Snd.whistle(); vib([60, 40, 120]); },
+      update(c, dt) { updateWhack(dt, true); cue(c, 0.5, () => Snd.chime({ v: 0.05, base: 784 })); },
+      overlay(c) { slam('¡TIEMPO!', c.t - 0.1, H * 0.44, 58 * U, '#ffd23f'); },
+      end() { showOver(); },
+    },
+  };
+
+  function startCine(id, opts = {}) {
+    const def = CINES[id];
+    S.state = 'cine';
+    S.cine = Object.assign({ id, t: 0, fired: new Set() }, opts);
+    S.barsT = 1; S.barsUntil = 0;
+    S.hitStop = 0; S.slowT = 0;
+    hideScreens();
+    $('btnPause').classList.add('hidden');
+    $('btnSkip').classList.toggle('hidden', !def.skip);
+    if (def.start) def.start(S.cine);
+  }
+  function endCine() {
+    const c = S.cine;
+    if (!c) return;
+    S.cine = null;
+    $('btnSkip').classList.add('hidden');
+    S.barsT = 0; S.caption = null;
+    CINES[c.id].end(c);
+  }
+  function skipCine() { if (S.cine && CINES[S.cine.id].skip) { Snd.whoosh({ v: 0.06 }); endCine(); } }
+  function resumePlay() {
+    S.state = 'playing';
+    $('btnPause').classList.remove('hidden');
+    camReset(4);
+    if (S.mode === 'aplasta') { CAM.x = CAM.tx = W / 2; CAM.y = CAM.ty = H / 2; CAM.z = CAM.tz = 1; } // los toques deben caer justo donde se ve
+    last = performance.now();
+    syncMusic();
+  }
+  // al terminar la historia: premio y elegir si seguir en modo infinito
+  function finishStory() {
+    const first = !store.get('kvj_ending', false);
+    store.set('kvj_ending', true);
+    if (first) P.addCoins(500);
+    $('winReward').classList.toggle('hidden', !first);
+    S.state = 'win';
+    camReset(10);
+    show('win');
+  }
+
+  // música según lo que esté pasando
+  function syncMusic() {
+    let m = null;
+    if (S.state === 'cine' || S.state === 'over') return; // la escena o el final deciden
+    if (S.state === 'playing' || S.state === 'paused') {
+      if (S.mode === 'aplasta') m = 'whack';
+      else m = J.big ? 'boss' : J.angry ? 'fury' : 'battle';
+    } else m = 'menu';
+    Snd.music(m, S.mode === 'aplasta' && S.state === 'playing' && S.timeLeft <= 5 ? 1.2 : 1);
+  }
+
+  // números que suben poco a poco (pantalla final)
+  function countUp(el, to, ms, onTick, onDone, delay = 0) {
+    const run = S.overRun;
+    const t0 = performance.now() + delay;
+    let lastTick = 0;
+    el.textContent = '0';
+    const stepFn = (now) => {
+      if (S.overRun !== run) return;
+      const k = clamp((now - t0) / ms, 0, 1);
+      el.textContent = fmt(to * (1 - Math.pow(1 - k, 3)));
+      if (k > 0 && k < 1 && onTick && now - lastTick > 70) { lastTick = now; onTick(); }
+      if (k < 1) requestAnimationFrame(stepFn); else if (onDone) onDone();
+    };
+    requestAnimationFrame(stepFn);
+  }
+
   /* ---------- actualización general ---------- */
   function updateFx(dt) {
     for (const p of S.parts) { p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; p.rot += dt * 6; }
@@ -1372,13 +1750,31 @@
     S.clock += dt;
     updateToasts(dt);
     updateBarkBtn();
+    updateCam(dt);
+    S.bars += (S.barsT - S.bars) * (1 - Math.exp(-dt * 7));
+    if (S.barsUntil && S.clock >= S.barsUntil) { S.barsT = 0; S.barsUntil = 0; }
+    S.wflash = Math.max(0, S.wflash - dt * 1.6);
+    S.koT = Math.max(0, S.koT - dt);
+    S.hbPulse = Math.max(0, S.hbPulse - dt * 2.2);
+    S.musicT -= dt;
+    if (S.musicT <= 0) { S.musicT = 0.3; syncMusic(); }
+    if (S.state === 'over' && S.overMusicT > 0) { S.overMusicT -= dt; if (S.overMusicT <= 0) Snd.music('menu'); }
     if (S.state === 'paused') return;
-    const whack = S.mode === 'aplasta';
-    if (S.state === 'playing') { if (whack) updateWhack(dt, false); else updateBattle(dt, false); }
-    else if (S.state === 'dying') {
-      S.dyingT -= dt;
-      if (whack) updateWhack(dt, true); else updateBattle(dt * 0.35, true);
-      if (S.dyingT <= 0) showOver();
+    if (S.state === 'cine') {
+      const c = S.cine;
+      c.t += dt;
+      CINES[c.id].update(c, dt);
+      if (S.cine === c && c.t >= CINES[c.id].dur) endCine();
+      updateFx(dt);
+      return;
+    }
+    // tiempo de juego: parón de impacto y cámara lenta
+    let g = dt;
+    if (S.hitStop > 0) { S.hitStop -= dt; g = 0; }
+    else if (S.slowT > 0) { S.slowT -= dt; g = dt * S.slowF; if (S.slowT <= 0) camReset(3); }
+    if (S.state === 'playing') {
+      if (S.mode === 'aplasta') updateWhack(g, false); else updateBattle(g, false);
+      if (S.endingT > 0) { S.endingT -= dt; if (S.endingT <= 0) startCine('ending'); }
     } else {
       // menú / fin de partida: Kaska pasea solo
       K.tx = W / 2 + Math.sin(S.clock * 0.7) * W * 0.28;
@@ -1386,15 +1782,22 @@
       K.x += (K.tx - K.x) * (1 - Math.exp(-dt * 4));
       K.vx = (K.x - px) / Math.max(dt, 1e-4);
     }
-    updateJ(dt);
-    updateFx(dt);
+    updateJ(g);
+    updateFx(g);
   }
 
   /* ---------- render ---------- */
+  function sceneKind() {
+    if (S.state === 'cine') { const sc = CINES[S.cine.id].scene; if (sc !== 'auto') return sc; }
+    return S.mode === 'aplasta' && S.state !== 'menu' ? 'whack' : 'battle';
+  }
+
   function render() {
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.fillStyle = '#08030d'; ctx.fillRect(0, 0, W, H);
     ctx.save();
     if (S.shake > 0.5) ctx.translate(rand(-1, 1) * S.shake, rand(-1, 1) * S.shake);
+    applyCam();
     ctx.drawImage(bg, 0, 0, W, H);
 
     ctx.fillStyle = '#fff';
@@ -1406,14 +1809,24 @@
     for (const b of S.bats) drawBat(b.x, b.y + Math.sin(b.bob) * 10 * U, b.s, b.ph);
 
     const inGame = S.state !== 'menu';
-    if (S.mode === 'aplasta' && inGame) drawWhack();
+    const scene = sceneKind();
+    if (scene === 'custom') CINES[S.cine.id].draw(S.cine);
+    else if (scene === 'whack') drawWhack();
     else {
       if (inGame) drawDiveWarning();
       drawJoselito();
       for (const it of S.items) drawItem(ctx, it, S.clock);
-      for (const b of S.bones) drawBoneProj(ctx, b.x, b.y, 11 * U, b.rot);
+      for (const b of S.bones) {
+        ctx.globalAlpha = 0.25; drawBoneProj(ctx, b.x, b.y + 26 * U, 9 * U, b.rot - 0.6);
+        ctx.globalAlpha = 0.5; drawBoneProj(ctx, b.x, b.y + 13 * U, 10 * U, b.rot - 0.3);
+        ctx.globalAlpha = 1; drawBoneProj(ctx, b.x, b.y, 11 * U, b.rot);
+      }
       drawKaska();
       if (S.barkWave) drawBarkWave();
+    }
+    if (S.koT > 0) {
+      const k = 1 - S.koT / 1.4;
+      comicBurst(S.koX, S.koY, 70 * U * (k < 0.15 ? k / 0.15 : 1), '¡K.O.!', Math.min(1, S.koT / 0.3));
     }
 
     for (const p of S.parts) {
@@ -1442,16 +1855,25 @@
     if (kb && inGame) drawBubble(kb.text, kb.x == null ? K.x : kb.x, kb.y == null ? K.y - K.r - 34 * U : kb.y, clamp(kb.t * 4, 0, 1), 1);
     ctx.restore();
 
-    if (S.mode === 'batalla' && J.angry && J.defeatT <= 0 && (S.state === 'playing' || S.state === 'paused')) {
+    const live = S.state === 'playing' || S.state === 'paused';
+    if (S.mode === 'batalla' && J.angry && J.defeatT <= 0 && live) {
       const a = 0.13 + 0.06 * Math.sin(S.clock * 8);
       const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
       g.addColorStop(0, 'rgba(255,0,0,0)'); g.addColorStop(1, `rgba(255,20,30,${a})`);
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     }
+    if (S.hbPulse > 0) { // latido con la última vida
+      const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.7);
+      g.addColorStop(0, 'rgba(255,0,0,0)'); g.addColorStop(1, `rgba(200,0,20,${0.45 * S.hbPulse})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
     if (S.flash > 0) { ctx.fillStyle = `rgba(255,30,40,${S.flash * 0.55})`; ctx.fillRect(0, 0, W, H); }
+    if (S.wflash > 0) { ctx.fillStyle = `rgba(255,255,255,${S.wflash})`; ctx.fillRect(0, 0, W, H); }
 
-    if (S.state === 'playing' || S.state === 'paused' || S.state === 'dying') drawHUD();
+    if (live) drawHUD();
+    if (S.state === 'cine' && CINES[S.cine.id].overlay) CINES[S.cine.id].overlay(S.cine);
     if (S.banner && S.state !== 'paused') drawBanner();
+    drawBars();
   }
 
   function drawDiveWarning() {
@@ -1477,17 +1899,19 @@
     let x = J.x, y = J.y;
     if (warn || (inGame && J.angry && J.stunT <= 0)) { x += rand(-1.5, 1.5) * U; y += rand(-1.5, 1.5) * U; }
     if (J.throwT > 0) y += Math.sin((J.throwT / 0.18) * Math.PI) * 8 * U;
+    y -= J.kick; // retrocede al recibir un hueso
     ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, y - J.r); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, -H); ctx.lineTo(x, y - J.r); ctx.stroke();
     const legSpeed = J.stunT > 0 ? 1.5 : angry ? 16 : 4;
     spiderLegs(ctx, x, y, J.r, S.clock, legSpeed, 0.55, 1.45, 2.05, '#0b080d', Math.max(4, J.r * 0.21), true);
-    if (inGame && J.angry && J.defeatT <= 0) glow(ctx, x, y, J.r, J.r * 1.8, '255,40,40', 0.6);
+    if (inGame && (J.angry || J.big) && J.defeatT <= 0) glow(ctx, x, y, J.r, J.r * 1.9, J.big ? '255,60,200' : '255,40,40', 0.6);
     ctx.save();
     ctx.translate(x, y);
     if (J.defeatT > 0) ctx.rotate(J.spin);
     const s = J.throwT > 0 ? 1.06 : 1;
-    token(ctx, angry && J.stunT <= 0 ? IMG.jf : IMG.j, 0, 0, J.r * s, angry ? '#ff3b3b' : '#120a18');
+    token(ctx, angry && J.stunT <= 0 ? IMG.jf : IMG.j, 0, 0, J.r * s, angry ? '#ff3b3b' : J.big ? '#b07cff' : '#120a18');
     if (J.hitT > 0) { ctx.fillStyle = `rgba(255,255,255,${(J.hitT / 0.12) * 0.6})`; ctx.beginPath(); ctx.arc(0, 0, J.r * s, 0, TAU); ctx.fill(); }
+    if (J.big) drawCrown(ctx, 0, -J.r * 0.12, J.r * s); // corona del Rey de las Arañas
     ctx.restore();
     if (J.stunT > 0) {
       ctx.fillStyle = '#ffd23f';
@@ -1505,7 +1929,8 @@
     const hop = S.webT > 0 ? 0 : Math.abs(Math.sin(S.clock * 14)) * 5 * U * moving;
     const y = K.y - hop;
     let rot = K.tilt;
-    if (S.state === 'dying' || S.state === 'over') rot = K.tilt + Math.sin(S.clock * 3) * 0.1;
+    if (S.state === 'over') rot = K.tilt + Math.sin(S.clock * 3) * 0.1;
+    if (S.cine && S.cine.id === 'ko') rot = K.tilt + Math.min(1, S.cine.t * 2.5) * 1.5; // Kaska cae rendido
     const costume = P.costume();
 
     for (const t of K.trail) {
@@ -1603,7 +2028,8 @@
   function drawBossBar() {
     if (S.betweenT > 0 && J.defeatT <= 0) return;
     const pad = 16 * U, y = 96 * U, h = 11 * U, w = W - pad * 2;
-    txt(J.angry ? `JOSELITO FURIOSO · NIVEL ${S.level}` : `JOSELITO · NIVEL ${S.level}`, W / 2, y - 10 * U, 13 * U, J.angry ? '#ff6b6b' : '#fff', 'center', FT, '#1a0726', 3 * U);
+    const label = J.big ? 'REY JOSELITO · JEFE FINAL' : J.angry ? `JOSELITO FURIOSO · NIVEL ${S.level}` : `JOSELITO · NIVEL ${S.level}`;
+    txt(label, W / 2, y - 10 * U, 13 * U, J.angry || J.big ? '#ff6b6b' : '#fff', 'center', FT, '#1a0726', 3 * U);
     ctx.fillStyle = 'rgba(0,0,0,.55)'; roundRectPath(ctx, pad, y, w, h, h / 2); ctx.fill();
     const hp = clamp(J.hp / J.maxHp, 0, 1), lag = clamp(J.hpLag / J.maxHp, 0, 1);
     if (lag > hp + 0.002) { ctx.fillStyle = '#ffd23f'; roundRectPath(ctx, pad, y, Math.max(h, w * lag), h, h / 2); ctx.fill(); }
@@ -1648,13 +2074,13 @@
   function frame(now) {
     const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
     last = now;
-    update(dt);
+    if (!(window.kvj && window.kvj.frozen)) update(dt); // (modo prueba: congelar)
     render();
     requestAnimationFrame(frame);
   }
 
   /* ---------- pantallas ---------- */
-  const screens = ['menu', 'help', 'shop', 'missions', 'rank', 'pause', 'over'];
+  const screens = ['menu', 'help', 'shop', 'missions', 'rank', 'pause', 'over', 'win'];
   function show(id) { for (const s of screens) $(s).classList.toggle('hidden', s !== id); }
   function hideScreens() { show(null); }
 
@@ -1679,7 +2105,7 @@
       if (i === myIdx) li.className = 'me';
       const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = medal(i);
       const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = e.name || 'Anónimo';
-      if (e.lvl) { const sm = document.createElement('small'); sm.textContent = ` · nivel ${e.lvl}`; nm.appendChild(sm); }
+      if (e.lvl) { const sm = document.createElement('small'); sm.textContent = ` · nivel ${e.lvl}${e.win ? ' 👑' : ''}`; nm.appendChild(sm); }
       const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = fmt(e.score);
       li.append(pos, nm, sc);
       el.appendChild(li);
@@ -1687,26 +2113,33 @@
   }
 
   function resetJ() {
-    Object.assign(J, { hp: 1, maxHp: 1, hpLag: 1, hitT: 0, stunT: 0, atk: null, dive: null, enterT: 0, defeatT: 0, spin: 0, angry: false, laughT: 0 });
+    Object.assign(J, { hp: 1, maxHp: 1, hpLag: 1, hitT: 0, stunT: 0, atk: null, dive: null, enterT: 0, defeatT: 0, spin: 0, angry: false, laughT: 0, kick: 0, big: false });
+    J.r = 42 * U;
+    J.baseY = 132 * U + J.r;
     J.y = J.baseY;
   }
 
   function showMenu() {
-    S.state = 'menu';
+    S.state = 'menu'; S.cine = null; S.overRun++;
     S.items = []; S.bones = []; S.banner = null; S.jBub = null; S.kBub = null; S.shieldT = 0; S.webT = 0; S.barkWave = null;
+    S.barsT = 0; S.caption = null; S.koT = 0; S.slowT = 0; S.hitStop = 0;
+    $('btnSkip').classList.add('hidden');
     for (const h of holes) h.o = null;
     resetJ();
+    camReset(5);
     $('bestBattle').textContent = fmt(bestScore('batalla'));
     $('bestWhack').textContent = fmt(bestScore('aplasta'));
     $('menuCoins').textContent = fmt(P.coins());
     $('btnPause').classList.add('hidden');
     show('menu');
+    syncMusic();
   }
 
   function startGame(mode = S.mode) {
     Snd.init();
     S.mode = mode === 'aplasta' ? 'aplasta' : 'batalla';
     store.set('kvj_lastmode', S.mode);
+    S.overRun++;
     Object.assign(S, {
       state: 'playing', t: 0, score: 0, lives: P.val('vidas'), combo: 0, maxCombo: 0, mult: 1, caught: 0,
       items: [], bones: [], popups: [], paws: [], spawnT: 1.1, shieldT: 0, invT: 0, shake: 0, flash: 0, scorePulse: 0,
@@ -1714,6 +2147,7 @@
       bark: 0, barkWave: null, barks: 0, spidersShot: 0, golds: 0, nextTaunt: 6, hints: [], barkHinted: false,
       jBub: null, kBub: null, banner: null, myId: null, doneMissions: [],
       whackTime: P.val('reloj'), taps: 0, hits: 0, whacked: 0, wgolds: 0, lastCall: false,
+      koT: 0, slowT: 0, hitStop: 0, hbT: 0, hbPulse: 0, endingT: 0, endless: false, victory: false, overMusicT: 0,
     });
     S.ammo = Math.min(S.maxAmmo, 6);
     S.timeLeft = S.whackTime;
@@ -1721,20 +2155,20 @@
     for (const h of holes) h.o = null;
     Object.assign(K, { dashT: 0, dashCD: 0, immT: 0, trail: [], readyFlash: 0, vx: 0 });
     K.x = K.tx = W / 2;
-    hideScreens();
-    $('btnPause').classList.remove('hidden');
+    resetJ();
+    camReset(6);
     if (S.mode === 'aplasta') {
       S.spawnT = 0.9;
-      banner('¡APLASTA A JOSELITO!', '¡Pero no toques a Kaska!', '#ffd23f', 2.2);
-    } else {
-      startLevel(1);
-      banner('¡KASKA CONTRAATACA!', 'Toca la pantalla para lanzar huesos', '#ffd23f', 2.4);
-      jSay('¡Ni se te ocurra tocar mis caramelos!', 2.6);
-      if (store.get('kvj_battles', 0) < 2) {
-        S.hints = [{ t: 3.2, text: '¡Toca para lanzarle huesos!' }, { t: 9, text: '¡Coge caramelos para tener más huesos!' }, { t: 16, text: '¡Desliza rápido para esquivar!' }];
-      }
+      startCine('ready');
+      return;
     }
-    last = performance.now();
+    if (store.get('kvj_battles', 0) < 2) {
+      S.hints = [{ t: 3.2, text: '¡Toca para lanzarle huesos!' }, { t: 9, text: '¡Coge caramelos para tener más huesos!' }, { t: 16, text: '¡Desliza rápido para esquivar!' }];
+    }
+    // la primera vez se ve la historia; después, directos al "¿listo?"
+    if (!store.get('kvj_intro', false)) { startCine('intro', { after: 'play' }); return; }
+    startLevel(1);
+    startCine('ready');
   }
 
   function setStats(stats) {
@@ -1742,7 +2176,12 @@
   }
 
   function showOver() {
-    S.state = 'over';
+    S.state = 'over'; S.cine = null;
+    S.overRun++;
+    S.barsT = 0; S.caption = null; S.koT = 0;
+    $('btnSkip').classList.add('hidden');
+    $('btnPause').classList.add('hidden');
+    camReset(4);
     const whack = S.mode === 'aplasta';
     if (whack) missionsDone(P.peak('whackScore', S.score));
     else { missionsDone(P.peak('score', S.score)); missionsDone(P.peak('level', S.level)); }
@@ -1761,7 +2200,7 @@
     S.myId = null;
     if (qualifies) {
       const entry = { id: Math.random().toString(36).slice(2, 10), name: store.get('kvj_name', '') || 'Anónimo', score: S.score, date: Date.now() };
-      if (!whack) entry.lvl = S.level;
+      if (!whack) { entry.lvl = S.level; if (S.victory || S.endless) entry.win = true; }
       ranking.push(entry);
       ranking.sort((a, b) => b.score - a.score);
       ranking.length = Math.min(ranking.length, 10);
@@ -1773,24 +2212,35 @@
       const acc = S.taps ? Math.round((S.hits / S.taps) * 100) : 0;
       setStats([[S.whacked, 'aplastados'], [S.maxCombo, 'combo máx.'], [`${acc}%`, 'puntería']]);
     } else {
-      $('overTitle').textContent = isRecord ? '¡Joselito está furioso!' : S.defeats > 0 ? `¡Has llegado al nivel ${S.level}!` : pick(OVER_TITLES);
+      $('overTitle').textContent = S.victory ? '¡HAS SALVADO HALLOWEEN!' : isRecord ? '¡Joselito está furioso!' : S.defeats > 0 ? `¡Has llegado al nivel ${S.level}!` : pick(OVER_TITLES);
       setStats([[S.level, 'nivel'], [S.caught, 'caramelos'], [S.maxCombo, 'combo máx.']]);
     }
-    $('overScore').textContent = fmt(S.score);
+    $('overFace').src = S.victory ? 'img/kaska.png' : 'img/joselito-furioso.png';
+    $('overFace').classList.toggle('win', !!S.victory);
     $('overRank').textContent = rankTitle(S.score);
-    $('overCoins').textContent = fmt(coins);
     $('overCoinsTotal').textContent = `(tienes ${fmt(P.coins())})`;
     const ul = $('overMissions');
     ul.innerHTML = '';
     for (const m of S.doneMissions) { const li = document.createElement('li'); li.textContent = `✅ ${m.text} · +${m.reward} 💰`; ul.appendChild(li); }
     ul.classList.toggle('hidden', !S.doneMissions.length);
     toastQ.length = 0; mtoastT = 0; $('mtoast').classList.add('hidden');
-    $('newRecord').classList.toggle('hidden', !isRecord);
+    $('newRecord').classList.add('hidden');
     $('nameBox').classList.toggle('hidden', !qualifies);
     $('nameInput').value = store.get('kvj_name', '');
     renderRanking($('overList'), 3);
     show('over');
-    if (isRecord) { confetti(); Snd.record(); }
+    // los números suben poco a poco y al final, si hay récord, sale el sello
+    Snd.stopMusic(0.3);
+    S.overMusicT = 3;
+    countUp($('overScore'), S.score, 1200, () => Snd.countTick(), () => {
+      if (isRecord || S.victory) {
+        const nr = $('newRecord');
+        nr.textContent = isRecord ? '🏆 ¡NUEVO RÉCORD! 🏆' : '👑 ¡HISTORIA COMPLETADA! 👑';
+        nr.classList.remove('hidden');
+        Snd.stamp(); Snd.record(); confetti(); vib([30, 30, 60]);
+      } else Snd.chime({ v: 0.05, base: 1046 });
+    }, 300);
+    countUp($('overCoins'), coins, 700, null, () => { if (coins > 0) Snd.coin(); }, 1500);
   }
 
   function pause() {
@@ -1798,6 +2248,7 @@
     S.state = 'paused';
     $('btnPause').classList.add('hidden');
     P.save();
+    Snd.duck(true);
     show('pause');
   }
   function resume() {
@@ -1805,6 +2256,7 @@
     S.state = 'playing';
     hideScreens();
     $('btnPause').classList.remove('hidden');
+    Snd.duck(false);
     last = performance.now();
   }
 
@@ -1827,7 +2279,10 @@
     catch (e) { toast('No se pudo copiar el enlace'); }
   }
 
-  function updateSoundBtn() { $('btnSound').textContent = Snd.on ? '🔊' : '🔇'; }
+  function updateSoundBtn() {
+    $('btnSound').textContent = Snd.on ? '🔊' : '🔇';
+    $('btnMusic').classList.toggle('off', !Snd.musicOn);
+  }
 
   // botón de súper ladrido (solo se toca el DOM cuando algo cambia)
   let barkVis = null, barkP = -1, barkRdy = null;
@@ -1864,7 +2319,7 @@
         b.disabled = P.coins() < price;
         b.addEventListener('click', () => {
           if (!P.buyUpgrade(u.id)) return;
-          Snd.init(); Snd.coin(); vib(20);
+          Snd.init(); Snd.purchase(); vib(20);
           toast(`¡${u.name} mejorado!`);
           renderShop();
         });
@@ -1892,7 +2347,7 @@
       else { b.textContent = `💰 ${fmt(c.price)}`; b.disabled = P.coins() < c.price; }
       b.addEventListener('click', () => {
         if (on || !P.useCostume(c.id)) return;
-        Snd.init(); Snd.coin();
+        Snd.init(); Snd.purchase();
         if (!owned) toast(`¡Disfraz de ${c.name} comprado!`);
         renderShop();
       });
@@ -1986,6 +2441,7 @@
     const k = e.key;
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.left = true; K.lastDir = -1; }
     if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = true; K.lastDir = 1; }
+    if (S.state === 'cine' && (k === 'Escape' || k === 'Enter' || k === ' ')) { e.preventDefault(); skipCine(); return; }
     if (k === 'Escape' || k === 'p' || k === 'P') { if (S.state === 'playing') pause(); else if (S.state === 'paused') resume(); }
     if (S.state === 'playing' && S.mode === 'batalla') {
       if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { e.preventDefault(); throwBone(); }
@@ -1997,7 +2453,7 @@
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
   });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); P.save(); } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); P.save(); Snd.stopMusic(0.05); } });
   window.addEventListener('blur', () => { keys.left = keys.right = false; });
   window.addEventListener('resize', resize);
 
@@ -2034,9 +2490,25 @@
   $('btnQuit').addEventListener('click', showMenu);
   $('btnShare').addEventListener('click', share);
   $('btnSound').addEventListener('click', () => {
-    Snd.on = !Snd.on; store.set('kvj_sound', Snd.on); updateSoundBtn();
-    if (Snd.on) { Snd.init(); Snd.catch(1); }
+    Snd.init(); Snd.setSfx(!Snd.on); updateSoundBtn();
+    if (Snd.on) Snd.barkK2({ v: 0.15 });
   });
+  $('btnMusic').addEventListener('click', () => { Snd.init(); Snd.setMusic(!Snd.musicOn); updateSoundBtn(); syncMusic(); });
+  $('btnSkip').addEventListener('click', skipCine);
+  $('btnStory').addEventListener('click', () => { Snd.init(); startCine('intro', { after: 'menu' }); });
+  $('btnEndless').addEventListener('click', () => {
+    // seguir después del final: modo infinito desde el nivel 7
+    hideScreens();
+    S.endless = true;
+    S.state = 'playing';
+    startLevel(FINAL_LEVEL + 1);
+    resumePlay();
+  });
+  $('btnFinish').addEventListener('click', () => { S.victory = true; showOver(); });
+
+  // el audio del móvil solo arranca tras tocar la pantalla; y cada botón hace "clic"
+  document.addEventListener('pointerdown', () => { Snd.init(); if (!Snd.musicName()) syncMusic(); }, true);
+  document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b && b.id !== 'btnBark') Snd.click(); }, true);
   $('nameInput').addEventListener('input', (e) => {
     const name = e.target.value.trim().slice(0, 12);
     store.set('kvj_name', name);
@@ -2050,7 +2522,7 @@
   // modo prueba: abre la web con #debug para tocar el estado desde la consola
   if (location.hash === '#debug') {
     window.kvj = {
-      S, K, J, P, holes, startGame, showOver, whackTap, throwBone, doBark, dash, startLevel, renderShop,
+      S, K, J, P, CAM, holes, startGame, showOver, whackTap, throwBone, doBark, dash, startLevel, renderShop, startCine, skipCine, defeatJoselito,
       occY: (i) => occY(holes[i], holes[i].o),
       step: (dt, n = 1) => { for (let i = 0; i < n; i++) update(dt); render(); },
       tick: (dt) => update(dt),

@@ -28,6 +28,22 @@ Joselito cuelga de su telaraña y ataca. Kaska tiene que esquivar y **lanzarle h
 | 3 | 🕷️ Lluvia de arañas en abanico |
 | 4 | 💣 Caramelos bomba: ¡no los cojas! Dispárales |
 | 5 | ⚠️ Embestida: Joselito baja en picado donde estás (sale un aviso rojo) |
+| 6 | 👑 **Jefe final**: Joselito, Rey de las Arañas (más grande, con corona y todos los ataques) |
+
+**La historia**
+- 🎬 **Intro**: la primera vez que juegas, una cinemática cuenta cómo Joselito le roba a Kaska su cubo de caramelos. Se puede volver a ver desde el menú ("Ver la historia") y se puede saltar.
+- Antes de cada partida: "NIVEL 1 · ¿Listo? ¡A luchar!".
+- Al derrotar a Joselito: **K.O.** con cámara lenta, zoom y piñata de caramelos.
+- Si pierdes: escena de "¡Kaska ha caído!" y la puntuación va subiendo en la pantalla final.
+- Al vencer al jefe final: **final con créditos** (+500 💰 la primera vez). Después puedes seguir en **modo infinito**.
+
+## 🔊 Sonido y música
+
+Todo está hecho con sonido sintetizado (sin archivos de audio):
+- Ladridos de Kaska (agudo, de chihuahua) y de Joselito (más rasposo), gruñidos, gemidos, aullidos, jadeos, risa malvada ladrada y "ñam ñam" al comer caramelos.
+- Efectos: silbidos al lanzar, golpes, explosiones, telarañas, latido del corazón con la última vida, fanfarrias...
+- Música de fondo distinta para el menú, el combate, Joselito enfadado, el jefe final y Aplasta.
+- En el menú hay botones para quitar la música 🎵 o el sonido 🔊 por separado.
 
 ## 🔨 Aplasta a Joselito
 
@@ -50,6 +66,7 @@ Consejo: en el móvil, usa "Añadir a pantalla de inicio" para tenerlo como una 
 ## Archivos
 
 - `index.html`, `style.css`: pantallas y estilos.
-- `game.js`: los dos juegos.
+- `game.js`: los dos juegos y las cinemáticas.
+- `audio.js`: sonidos de perro, efectos y música (todo sintetizado).
 - `progress.js`: monedas, mejoras, disfraces y misiones.
 - `img/`: caras recortadas de las fotos, iconos de la app e imagen para compartir.

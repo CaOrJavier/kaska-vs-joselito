@@ -27,6 +27,7 @@
 <div id="wrap">
   <canvas id="c"></canvas>
   <button id="btnPause" class="pauseBtn hidden" aria-label="Pausa">II</button>
+  <button id="btnSkip" class="skipBtn hidden">Saltar ⏭</button>
   <button id="btnBark" class="barkBtn hidden" aria-label="Súper ladrido"><img src="img/kaska.png" alt=""><b>¡GUAU!</b></button>
   <div id="mtoast" class="mtoast hidden"></div>
 
@@ -34,7 +35,10 @@
   <section id="menu" class="screen">
     <div class="topbar">
       <button id="btnCoins" class="coinPill" aria-label="Monedas">💰 <b id="menuCoins">0</b></button>
-      <button id="btnSound" class="iconBtn" aria-label="Sonido">🔊</button>
+      <div class="tbRight">
+        <button id="btnMusic" class="iconBtn" aria-label="Música">🎵</button>
+        <button id="btnSound" class="iconBtn" aria-label="Sonido">🔊</button>
+      </div>
     </div>
     <div class="inner">
       <h1>Kaska<span class="vs">contra</span>Joselito</h1>
@@ -66,6 +70,7 @@
         <button id="btnRank" class="btn alt sm">🏆 Ranking</button>
         <button id="btnHelp" class="btn alt sm">❓ Cómo jugar</button>
       </div>
+      <button id="btnStory" class="link">🎬 Ver la historia</button>
     </div>
   </section>
 
@@ -160,10 +165,23 @@
     </div>
   </section>
 
+  <!-- HISTORIA COMPLETADA -->
+  <section id="win" class="screen hidden">
+    <div class="inner">
+      <div class="winFaces"><img src="img/kaska.png" alt=""><span>🤝</span><img src="img/joselito.png" alt=""></div>
+      <h2>¡HAS SALVADO HALLOWEEN!</h2>
+      <p class="lead">Has derrotado a Joselito, el Rey de las Arañas, y Kaska ha recuperado sus caramelos.</p>
+      <div id="winReward" class="winReward">+500 💰 por terminar la historia</div>
+      <button id="btnEndless" class="btn big">⚔️ Seguir jugando</button>
+      <p class="small">Modo infinito: Joselito vuelve una y otra vez. ¡A por el récord!</p>
+      <button id="btnFinish" class="btn alt">🏁 Terminar partida</button>
+    </div>
+  </section>
+
   <!-- FIN DE PARTIDA -->
   <section id="over" class="screen hidden">
     <div class="inner">
-      <img class="overFace" src="img/joselito-furioso.png" alt="">
+      <img id="overFace" class="overFace" src="img/joselito-furioso.png" alt="">
       <h2 id="overTitle">¡Joselito te ha pillado!</h2>
       <div id="newRecord" class="newRecord hidden">🏆 ¡NUEVO RÉCORD! 🏆</div>
       <div class="score" id="overScore">0</div>
@@ -191,6 +209,7 @@
 
   <div id="toast" class="toast hidden"></div>
 </div>
+<script src="audio.js"></script>
 <script src="progress.js"></script>
 <script src="game.js"></script>
 </body>

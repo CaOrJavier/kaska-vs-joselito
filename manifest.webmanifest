@@ -1,0 +1,16 @@
+{
+  "name": "Kaska vs Joselito · La noche de los caramelos",
+  "short_name": "Kaska vs Joselito",
+  "description": "Coge caramelos, esquiva las arañas de Joselito y bate el récord.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#14081f",
+  "theme_color": "#14081f",
+  "lang": "es",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

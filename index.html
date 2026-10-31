@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Kaska vs Joselito · La noche de los caramelos</title>
+<meta name="description" content="Ayuda a Kaska a coger los caramelos de Halloween y esquiva las arañas de Joselito. ¿Batirás el récord?">
+<meta name="theme-color" content="#14081f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kaska vs Joselito">
+<meta property="og:title" content="Kaska vs Joselito 🎃 La noche de los caramelos">
+<meta property="og:description" content="Coge caramelos, esquiva las arañas de Joselito y bate el récord.">
+<meta property="og:image" content="https://caorjavier.github.io/kaska-vs-joselito/img/og.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Luckiest+Guy&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <button id="btnPause" class="pauseBtn hidden" aria-label="Pausa">II</button>
+
+  <!-- MENÚ -->
+  <section id="menu" class="screen">
+    <div class="inner">
+      <h1>Kaska<span class="vs">contra</span>Joselito</h1>
+      <p class="sub">🎃 La noche de los caramelos 🎃</p>
+      <div class="cards">
+        <figure class="card hero">
+          <img src="img/kaska-carta.jpg" alt="Kaska disfrazado de Jack Skellington">
+          <figcaption>KASKA<small>el bueno</small></figcaption>
+        </figure>
+        <div class="vsBadge">VS</div>
+        <figure class="card villain">
+          <img src="img/joselito-carta.jpg" alt="Joselito disfrazado de araña">
+          <figcaption>JOSELITO<small>el malo</small></figcaption>
+        </figure>
+      </div>
+      <div class="best">🏆 Récord: <b id="menuBest">0</b> <span id="menuBestName"></span></div>
+      <button id="btnPlay" class="btn big">¡JUGAR!</button>
+      <div class="row">
+        <button id="btnRank" class="btn alt">Ranking</button>
+        <button id="btnHelp" class="btn alt">Cómo jugar</button>
+      </div>
+      <button id="btnSound" class="link">🔊 Sonido: sí</button>
+    </div>
+  </section>
+
+  <!-- CÓMO JUGAR -->
+  <section id="help" class="screen hidden">
+    <div class="inner">
+      <h2>Cómo jugar</h2>
+      <p class="lead">Joselito, el perro-araña, ha robado los caramelos de Halloween y los va tirando desde su telaraña. <b>Arrastra el dedo</b> por la pantalla para mover a Kaska.</p>
+      <ul class="items">
+        <li><canvas data-icon="candy"></canvas><div><b>Caramelo</b><span>+10 puntos</span></div></li>
+        <li><canvas data-icon="gold"></canvas><div><b>Caramelo dorado</b><span>+50 puntos</span></div></li>
+        <li><canvas data-icon="spider"></canvas><div><b>Araña de Joselito</b><span>¡Te quita una vida!</span></div></li>
+        <li><canvas data-icon="pumpkin"></canvas><div><b>Calabaza</b><span>Escudo anti-arañas y puntos x2</span></div></li>
+        <li><canvas data-icon="bone"></canvas><div><b>Hueso</b><span>+1 vida</span></div></li>
+      </ul>
+      <p class="tip">🔥 Coge caramelos seguidos para subir el <b>COMBO</b> (hasta x5). Si se te escapa uno, vuelve a x1.</p>
+      <p class="tip">😡 De vez en cuando Joselito <b>se enfada</b> y lanza una lluvia de arañas. Si sobrevives, ¡bonus!</p>
+      <button class="btn back">Volver</button>
+    </div>
+  </section>
+
+  <!-- RANKING -->
+  <section id="rank" class="screen hidden">
+    <div class="inner">
+      <h2>🏆 Ranking</h2>
+      <ol id="rankList" class="ranking"></ol>
+      <p class="small" id="gamesPlayed"></p>
+      <button class="btn back">Volver</button>
+    </div>
+  </section>
+
+  <!-- PAUSA -->
+  <section id="pause" class="screen hidden">
+    <div class="inner">
+      <h2>Pausa</h2>
+      <button id="btnResume" class="btn big">Seguir</button>
+      <button id="btnQuit" class="btn alt">Salir al menú</button>
+    </div>
+  </section>
+
+  <!-- FIN DE PARTIDA -->
+  <section id="over" class="screen hidden">
+    <div class="inner">
+      <img class="overFace" src="img/joselito-furioso.png" alt="">
+      <h2 id="overTitle">¡Joselito te ha pillado!</h2>
+      <div id="newRecord" class="newRecord hidden">🏆 ¡NUEVO RÉCORD! 🏆</div>
+      <div class="score" id="overScore">0</div>
+      <div class="rankTitle" id="overRank"></div>
+      <div class="stats">
+        <div><b id="stCandy">0</b><span>caramelos</span></div>
+        <div><b id="stCombo">0</b><span>combo máx.</span></div>
+        <div><b id="stTime">0s</b><span>tiempo</span></div>
+      </div>
+      <label id="nameBox" class="nameBox hidden">
+        <span>¡Entras en el ranking! Tu nombre:</span>
+        <input id="nameInput" maxlength="12" autocomplete="off" placeholder="Escribe tu nombre">
+      </label>
+      <ol id="overList" class="ranking small"></ol>
+      <button id="btnAgain" class="btn big">Otra vez</button>
+      <div class="row">
+        <button id="btnShare" class="btn green">Compartir</button>
+        <button id="btnMenu" class="btn alt">Menú</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

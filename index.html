@@ -28,6 +28,11 @@
   <canvas id="c"></canvas>
   <button id="btnPause" class="pauseBtn hidden" aria-label="Pausa">II</button>
   <button id="btnSkip" class="skipBtn hidden">Saltar ⏭</button>
+  <!-- controles para la mano izquierda: disparar y súper ladrido -->
+  <button id="btnFire" class="fireBtn hidden" aria-label="Lanzar hueso">
+    <svg viewBox="0 0 44 20" aria-hidden="true"><g fill="#fbf3df"><circle cx="6" cy="5" r="5"/><circle cx="6" cy="15" r="5"/><circle cx="38" cy="5" r="5"/><circle cx="38" cy="15" r="5"/><rect x="5" y="5.5" width="34" height="9" rx="2"/></g></svg>
+    <b id="ammoTxt">6/10</b>
+  </button>
   <button id="btnBark" class="barkBtn hidden" aria-label="Súper ladrido"><img src="img/kaska.png" alt=""><b>¡GUAU!</b></button>
   <div id="mtoast" class="mtoast hidden"></div>
 
@@ -86,7 +91,7 @@
         <p class="lead">Joselito ha robado los caramelos de Halloween. <b>¡Derrótalo!</b> Cada nivel vuelve más fuerte y con ataques nuevos.</p>
         <ul class="items controls">
           <li><span class="emo">👆</span><div><b>Arrastra el dedo</b><span>Mueve a Kaska</span></div></li>
-          <li><span class="emo">🦴</span><div><b>Toca la pantalla</b><span>Lanza un hueso hacia arriba (gastas 1)</span></div></li>
+          <li><span class="emo">🦴</span><div><b>Botón del hueso (abajo a la izquierda)</b><span>Lanza un hueso hacia arriba. Si lo mantienes, dispara seguido. También vale tocar la pantalla.</span></div></li>
           <li><span class="emo">💨</span><div><b>Desliza rápido</b><span>Dash: esquivas todo durante un momento</span></div></li>
           <li><span class="emo">📣</span><div><b>Botón GUAU</b><span>Súper ladrido: borra los ataques y aturde a Joselito</span></div></li>
         </ul>

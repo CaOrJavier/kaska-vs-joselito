@@ -451,10 +451,10 @@ h2 {
 /* ---------- botón de súper ladrido ---------- */
 .barkBtn {
   position: absolute;
-  right: 12px;
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  width: 72px;
-  height: 72px;
+  left: 98px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
   border: none;
   padding: 0;
@@ -465,7 +465,7 @@ h2 {
   touch-action: manipulation;
   z-index: 3;
 }
-.barkBtn img { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #14081f; filter: grayscale(.85) brightness(.6); transition: filter .2s; pointer-events: none; }
+.barkBtn img { width: 55px; height: 55px; border-radius: 50%; border: 3px solid #14081f; filter: grayscale(.85) brightness(.6); transition: filter .2s; pointer-events: none; }
 .barkBtn b {
   position: absolute;
   top: -16px;
@@ -570,3 +570,36 @@ h2 {
   animation: stamp .5s .3s cubic-bezier(.2, .8, .3, 1.2) both;
 }
 #btnEndless { font-size: 26px; padding: 14px 26px 10px; }
+
+/* ---------- botón de disparar (mano izquierda) ---------- */
+.fireBtn {
+  position: absolute;
+  left: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .85);
+  background: radial-gradient(circle at 50% 35%, #ff9b3d, #c24d00 70%);
+  box-shadow: 0 5px 0 #7a2e00, 0 8px 18px rgba(0, 0, 0, .45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  z-index: 3;
+  transition: transform .06s, box-shadow .06s;
+}
+.fireBtn svg { width: 38px; height: 18px; transform: rotate(-35deg); filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .35)); pointer-events: none; }
+.fireBtn b { font-family: var(--ft); font-weight: 400; font-size: 17px; color: #fff; letter-spacing: .5px; text-shadow: 0 2px 0 rgba(0, 0, 0, .4); pointer-events: none; line-height: 1; margin-top: 4px; }
+.fireBtn.down { transform: translateY(4px) scale(.95); box-shadow: 0 1px 0 #7a2e00, 0 4px 10px rgba(0, 0, 0, .45); }
+.fireBtn.full b { color: #c6ff8a; }
+.fireBtn.empty { background: radial-gradient(circle at 50% 35%, #6b5a7a, #3b2a4c 70%); box-shadow: 0 5px 0 #1f1430; animation: emptyPulse .7s ease-in-out infinite; }
+.fireBtn.empty b { color: #ff8a8a; }
+@keyframes emptyPulse { 50% { border-color: #ff4b4b; } }
+.mtoast { bottom: calc(196px + env(safe-area-inset-bottom)); }

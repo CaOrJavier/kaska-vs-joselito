@@ -996,6 +996,8 @@
     S.emptyT = Math.max(0, S.emptyT - dt);
     S.boneCD = Math.max(0, S.boneCD - dt);
     K.immT = Math.max(0, K.immT - dt);
+    // botón de disparar mantenido: ráfaga de huesos
+    if (S.fireHeld && !dying) { S.fireT -= dt; if (S.fireT <= 0) { throwBone(); S.fireT = 0.18; } }
     if (K.dashCD > 0) { K.dashCD -= dt; if (K.dashCD <= 0) K.readyFlash = 0.35; }
     if (J.stunT > 0) J.stunT -= dt;
     if (!dying) {
@@ -2022,7 +2024,6 @@
       ctx.fillStyle = '#ff8a2a'; roundRectPath(ctx, bx, by, Math.max(bh, (bw * S.shieldT) / P.val('escudo')), bh, bh / 2); ctx.fill();
     }
     drawBossBar();
-    drawAmmo();
   }
 
   function drawBossBar() {
@@ -2163,7 +2164,7 @@
       return;
     }
     if (store.get('kvj_battles', 0) < 2) {
-      S.hints = [{ t: 3.2, text: '¡Toca para lanzarle huesos!' }, { t: 9, text: '¡Coge caramelos para tener más huesos!' }, { t: 16, text: '¡Desliza rápido para esquivar!' }];
+      S.hints = [{ t: 3.2, text: '¡Pulsa el hueso de la izquierda!' }, { t: 9, text: '¡Coge caramelos para tener más huesos!' }, { t: 16, text: '¡Desliza rápido para esquivar!' }];
     }
     // la primera vez se ve la historia; después, directos al "¿listo?"
     if (!store.get('kvj_intro', false)) { startCine('intro', { after: 'play' }); return; }
@@ -2284,17 +2285,22 @@
     $('btnMusic').classList.toggle('off', !Snd.musicOn);
   }
 
-  // botón de súper ladrido (solo se toca el DOM cuando algo cambia)
-  let barkVis = null, barkP = -1, barkRdy = null;
+  // botones de la izquierda: disparar (con los huesos que quedan) y súper ladrido.
+  // Solo se toca el DOM cuando algo cambia.
+  let barkVis = null, barkP = -1, barkRdy = null, ammoShown = '', ammoCls = '';
   function updateBarkBtn() {
-    const btn = $('btnBark');
+    const btn = $('btnBark'), fire = $('btnFire');
     const vis = S.mode === 'batalla' && S.state === 'playing';
-    if (vis !== barkVis) { barkVis = vis; btn.classList.toggle('hidden', !vis); }
-    if (!vis) return;
+    if (vis !== barkVis) { barkVis = vis; btn.classList.toggle('hidden', !vis); fire.classList.toggle('hidden', !vis); }
+    if (!vis) { S.fireHeld = false; return; }
     const p = Math.round(S.bark * 50) / 50;
     if (p !== barkP) { barkP = p; btn.style.setProperty('--p', p); }
     const rdy = S.bark >= 1;
     if (rdy !== barkRdy) { barkRdy = rdy; btn.classList.toggle('ready', rdy); }
+    const txtAmmo = `${S.ammo}/${S.maxAmmo}`;
+    if (txtAmmo !== ammoShown) { ammoShown = txtAmmo; $('ammoTxt').textContent = txtAmmo; }
+    const cls = S.ammo <= 0 ? 'empty' : S.ammo >= S.maxAmmo ? 'full' : '';
+    if (cls !== ammoCls) { fire.classList.remove('empty', 'full'); if (cls) fire.classList.add(cls); ammoCls = cls; }
   }
 
   /* ---------- tienda y misiones ---------- */
@@ -2435,6 +2441,20 @@
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   $('btnBark').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); doBark(); });
+  // disparar: un hueso al pulsar y, si se mantiene, ráfaga
+  const fireBtn = $('btnFire');
+  fireBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    try { fireBtn.setPointerCapture(e.pointerId); } catch (err) { /* nada */ }
+    S.fireHeld = true; S.fireT = 0.3;
+    fireBtn.classList.add('down');
+    throwBone();
+  });
+  const fireUp = () => { S.fireHeld = false; fireBtn.classList.remove('down'); };
+  fireBtn.addEventListener('pointerup', fireUp);
+  fireBtn.addEventListener('pointercancel', fireUp);
+  fireBtn.addEventListener('lostpointercapture', fireUp);
+  fireBtn.addEventListener('contextmenu', (e) => e.preventDefault());
 
   window.addEventListener('keydown', (e) => {
     if (e.target && e.target.tagName === 'INPUT') return;
@@ -2508,7 +2528,7 @@
 
   // el audio del móvil solo arranca tras tocar la pantalla; y cada botón hace "clic"
   document.addEventListener('pointerdown', () => { Snd.init(); if (!Snd.musicName()) syncMusic(); }, true);
-  document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b && b.id !== 'btnBark') Snd.click(); }, true);
+  document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('button'); if (b && b.id !== 'btnBark' && b.id !== 'btnFire') Snd.click(); }, true);
   $('nameInput').addEventListener('input', (e) => {
     const name = e.target.value.trim().slice(0, 12);
     store.set('kvj_name', name);

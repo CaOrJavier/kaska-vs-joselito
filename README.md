@@ -10,9 +10,9 @@ Joselito cuelga de su telaraña y ataca. Kaska tiene que esquivar y **lanzarle h
 
 **Controles**
 - 👆 **Arrastra el dedo**: mueve a Kaska.
-- 🦴 **Toca la pantalla**: lanza un hueso hacia arriba (gastas 1).
+- 🦴 **Botón del hueso (abajo a la izquierda)**: lanza un hueso hacia arriba (gastas 1). Si lo mantienes, dispara seguido. También vale tocar la pantalla.
 - 💨 **Desliza rápido**: dash. Durante un momento no te hace daño nada.
-- 📣 **Botón GUAU**: súper ladrido. Se carga cogiendo caramelos y dando golpes. Borra todos los ataques de la pantalla, aturde a Joselito y le quita vida.
+- 📣 **Botón GUAU (abajo a la izquierda, junto al de disparar)**: súper ladrido. Se carga cogiendo caramelos y dando golpes. Borra todos los ataques de la pantalla, aturde a Joselito y le quita vida.
 - En ordenador: ratón para moverte, clic para lanzar, Shift para el dash, B para el ladrido.
 
 **Cómo funciona**
